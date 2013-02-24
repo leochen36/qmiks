@@ -3,19 +3,19 @@
  * @email:cwq0312@163.com
  * @version:0.91.008
 
- http·şÎñ:
- Ãû³Æ:
-    ¹ıÂËÆ÷
-    Â·ÓÍÆ÷
+ httpæœåŠ¡:
+ åç§°:
+    è¿‡æ»¤å™¨
+    è·¯æ²¹å™¨
 
 
  */
 //server
 (function (Q, Server) {
     var http = require("http"),
-        filters = [],//¹ıÂËÆ÷ÁĞ±í
-        routers = [];//Â·ÓÍÆ÷ÁĞ±í
-    /* Ìí¼Ó¹ıÂËÆ÷ */
+        filters = [],//è¿‡æ»¤å™¨åˆ—è¡¨
+        routers = [];//è·¯æ²¹å™¨åˆ—è¡¨
+    /* æ·»åŠ è¿‡æ»¤å™¨ */
     function addFilter(key, fun) {
         var ft = getFilter(key),
             nfun = function (req, res, filterChain) {
@@ -27,13 +27,13 @@
             filters.push({ key: key, regexp: new RegExp(key, "i"), list: [nfun] })
         }
     }
-    /* È¡µÃ¹ıÂËÆ÷ */
+    /* å–å¾—è¿‡æ»¤å™¨ */
     function getFilter(key) {
         for (var i = 0; i < filters.length; i++) {
             if (filters[i].key == key) return filters[i]
         }
     }
-    /* È¡µÃËùÓĞ·ûºÏ´ËurlÑéÖ¤¹æÔòµÄ¹ıÂËÆ÷´¦Àí·½·¨ */
+    /* å–å¾—æ‰€æœ‰ç¬¦åˆæ­¤urléªŒè¯è§„åˆ™çš„è¿‡æ»¤å™¨å¤„ç†æ–¹æ³• */
     function getAllFilterFun(url) {
         var list = [],
             i,
@@ -49,7 +49,7 @@
         }
         return list;
     }
-    /* Ìí¼ÓÂ·ÓÍÆ÷ */
+    /* æ·»åŠ è·¯æ²¹å™¨ */
     function addRouter(key, fun, opts) {
         var nopts = Q.extend({ method: "ALL" }, opts);
         for (var i = routers.length - 1; i >= 0; i--) {
@@ -67,7 +67,7 @@
             }
         });
     }
-    /* Ö´ĞĞÏà¹ØÂ·ÓÍÆ÷,¸ù¾İurlÕÒ³öÏà¹ØÂ·ÓÍÆ÷²¢Ö´ĞĞ */
+    /* æ‰§è¡Œç›¸å…³è·¯æ²¹å™¨,æ ¹æ®urlæ‰¾å‡ºç›¸å…³è·¯æ²¹å™¨å¹¶æ‰§è¡Œ */
     function execRouter(url, method, req, res) {
         for (var k = 0; k < routers.length; k++) {
             if (routers[k].option.method == "ALL" || routers[k].option.method == method) {
@@ -81,7 +81,7 @@
             }
         }
     }
-    /* °Ñ×Ö·û´®×ªÎªÕıÔòµÄ×Ö·û´® */
+    /* æŠŠå­—ç¬¦ä¸²è½¬ä¸ºæ­£åˆ™çš„å­—ç¬¦ä¸² */
     function toRegExpString(str) {
         if (str == "/" || str == "*") {
             return ".*"
@@ -97,9 +97,9 @@
         listen: function (port) {
             this.server.listen(port);
         },
-        /** Ìí¼Ó¹ıÂËÆ÷(¾ÍÊÇÀ¹½ØÆ÷),Í¬Ò»¹æÔò,¿ÉÒÔÓĞ¶à¸ö¹ıÂËÆ÷,ÓÅÏÈ¹ıÂËÆ÷,ÔÙ´¥·¢Â·ÓÍÆ÷
-        * path:¹ıÂËÂ·¾¶(ÕıÔò±í´ïÊ½)
-        * fun:Èç¹û·ûºÏ¹ıÂË¹æÔò,´¥·¢·½·¨
+        /** æ·»åŠ è¿‡æ»¤å™¨(å°±æ˜¯æ‹¦æˆªå™¨),åŒä¸€è§„åˆ™,å¯ä»¥æœ‰å¤šä¸ªè¿‡æ»¤å™¨,ä¼˜å…ˆè¿‡æ»¤å™¨,å†è§¦å‘è·¯æ²¹å™¨
+        * path:è¿‡æ»¤è·¯å¾„(æ­£åˆ™è¡¨è¾¾å¼)
+        * fun:å¦‚æœç¬¦åˆè¿‡æ»¤è§„åˆ™,è§¦å‘æ–¹æ³•
         */
         filter: function (regexp, fun) {
             if (Q.isString(regexp)) {
@@ -110,9 +110,9 @@
                 throw new Error("regexp type is error,please input RegExp or String");
             }
         },
-        /** Ìí¼ÓÂ·ÓÍÆ÷(ÀàËÆjava structµÄ /abc.e ´¥·¢¶ÔÓ¦action ),Í¬Ò»¹æÔò,Ö»ÄÜÓĞÒ»¸öÂ·ÓÍÆ÷,×îºóÌí¼ÓµÄÂ·ÓÍÆ÷,Ìæ»»ÀÏµÄ
-        *   path:¹ıÂËÂ·¾¶(ÕıÔò±í´ïÊ½)
-        *   callback:Èç¹û·ûºÏ¹ıÂË¹æÔò,´¥·¢·½·¨
+        /** æ·»åŠ è·¯æ²¹å™¨(ç±»ä¼¼java structçš„ /abc.e è§¦å‘å¯¹åº”action ),åŒä¸€è§„åˆ™,åªèƒ½æœ‰ä¸€ä¸ªè·¯æ²¹å™¨,æœ€åæ·»åŠ çš„è·¯æ²¹å™¨,æ›¿æ¢è€çš„
+        *   path:è¿‡æ»¤è·¯å¾„(æ­£åˆ™è¡¨è¾¾å¼)
+        *   callback:å¦‚æœç¬¦åˆè¿‡æ»¤è§„åˆ™,è§¦å‘æ–¹æ³•
         */
         router: function (regexp, fun, opts) {
             if (Q.isString(regexp)) {
@@ -143,7 +143,7 @@
                     console.log("method:" + req.method);
                     console.log("httpVersion:" + req.httpVersion);
                     console.log("connection:" + req.connection);
-                    //È¡µÃËùÓĞµÄ¹ıÂË·½·¨
+                    //å–å¾—æ‰€æœ‰çš„è¿‡æ»¤æ–¹æ³•
                     var execList = getAllFilterFun(url) || [];
 
                     function execFilter(req, res) {
