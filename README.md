@@ -1,0 +1,1 @@
+Qmiks是一个服务器端的javascript开发框架,目前主要是依托于nodejs
