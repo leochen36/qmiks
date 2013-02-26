@@ -140,9 +140,11 @@ var Qmiks = new (function () {
                 break;
         }
         each(slice.call(arguments, index), function (j, item) {
-            each(item, function (key, value) {
-                if (!isNull(value)) first[key] = value
-            })
+            if(item){
+                each(item, function (key, value) {
+                    if (!isNull(value)) first[key] = value
+                })
+            }
         });
         return first
     }

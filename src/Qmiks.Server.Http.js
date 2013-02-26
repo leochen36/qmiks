@@ -11,12 +11,17 @@
 
  */
 //server
-(function (Q, Server) {
+(function (Q) {
+    //加载模块
+    require("./Qmiks.Server");
+    var Log=require("./Qmiks.Log").Log;
+
+    //声明变量
     var http = require("http"),
         filters = [],//过滤器列表
         routers = [];//路油器列表
     /* 添加过滤器 */
-    function addFilter(key, fun) {
+    function addFilter(key, fun,opts) {
         var ft = getFilter(key),
             nfun = function (req, res, filterChain) {
                 fun.apply(fun, [req, res, filterChain]);
@@ -24,7 +29,13 @@
         if (ft) {
             ft.list.push(nfun)
         } else {
-            filters.push({ key: key, regexp: new RegExp(key, "i"), list: [nfun] })
+            filters.push({
+                key:key,
+                list:[nfun],
+                rule:opts.rule,
+                ruleType:opts.ruleType,
+                option:Q.extend({}, opts)
+            })
         }
     }
     /* 取得过滤器 */
@@ -41,17 +52,25 @@
             _ft;
         for (i = 0; i < filters.length; i++) {
             _ft = filters[i];
-            if (_ft.regexp.test(url)) {
+            if(_ft.ruleType=="regexp"&&_ft.rule.test(url)){
                 for (var k in _ft.list) {
-                    list.push(_ft.list[k]);
+                    list.push(_ft.list[k])
+                }
+            }else if(_ft.rule==url){
+                for (var k in _ft.list) {
+                    list.push(_ft.list[k])
                 }
             }
         }
-        return list;
+        return list
     }
     /* 添加路油器 */
-    function addRouter(key, fun, opts) {
-        var nopts = Q.extend({ method: "ALL" }, opts);
+    function addRouter(keyRegexp, fun, opts) {
+        var nopts = Q.extend({ method: "ALL" }, opts),
+            key=keyRegexp.toString();
+        if(nopts.ruleType=="string"){
+            key=nopts.rule;
+        }
         for (var i = routers.length - 1; i >= 0; i--) {
             if (routers[i].key == key) {
                 console.log("the router[" + key + "] too many! remove  the extra");
@@ -60,7 +79,8 @@
         }
         routers.push({
             key: key,
-            regexp: new RegExp(key, "i"),
+            rule:opts.rule,
+            ruleType:opts.ruleType,
             option: nopts,
             router: function (req, res) {
                 fun.apply(fun, [req, res]);
@@ -71,24 +91,22 @@
     function execRouter(url, method, req, res) {
         for (var k = 0; k < routers.length; k++) {
             if (routers[k].option.method == "ALL" || routers[k].option.method == method) {
-                if (routers[k].option.ruleType == "string") {
-                    if (routers[k].key == url) {
-                        routers[k].router(req, res)
-                    }
-                }else if (routers[k].regexp.test(url)) {
+                if(routers[k].option.ruleType == "regexp"&&routers[k].rule.test(url)){
+                    routers[k].router(req, res)
+                }else if (routers[k].rule == url) {
                     routers[k].router(req, res)
                 }
             }
         }
     }
-    /* 把字符串转为正则的字符串 */
-    function toRegExpString(str) {
-        if (str == "/" || str == "*") {
-            return ".*"
+    function transform(str){
+        if(Q.isString(str)){
+            if (str == "/" || str == "*") {
+                return /.*/i
+            }
         }
         return str;
     }
-
     var app = function (server) {
         var me = this;
         me.server = server;
@@ -96,38 +114,43 @@
     Q.extend(app.prototype, {
         listen: function (port) {
             this.server.listen(port);
+            return this
         },
         /** 添加过滤器(就是拦截器),同一规则,可以有多个过滤器,优先过滤器,再触发路油器
         * path:过滤路径(正则表达式)
         * fun:如果符合过滤规则,触发方法
         */
-        filter: function (regexp, fun) {
-            if (Q.isString(regexp)) {
-                addFilter(toRegExpString(regexp), fun)
-            } else if (Q.isRegExp(regexp)) {
-                addFilter(regexp.toString(), fun)
+        filter: function (regexp, fun,opts) {
+            var reg=transform(regexp);
+            if (Q.isString(reg)) {
+                addFilter(regexp, fun, Q.extend({ ruleType: "string",rule:reg }, opts))
+            } else if (Q.isRegExp(reg)) {
+                addFilter(regexp, fun, Q.extend({ ruleType: "regexp",rule:reg }, opts))
             } else {
-                throw new Error("regexp type is error,please input RegExp or String");
+                throw new Error("regexp type is error,please input RegExp or String")
             }
+            return this     
         },
         /** 添加路油器(类似java struct的 /abc.e 触发对应action ),同一规则,只能有一个路油器,最后添加的路油器,替换老的
         *   path:过滤路径(正则表达式)
         *   callback:如果符合过滤规则,触发方法
         */
         router: function (regexp, fun, opts) {
-            if (Q.isString(regexp)) {
-                addRouter(toRegExpString(regexp), fun, Q.extend({ ruleType: "string" }, opts))
-            } else if (Q.isRegExp(regexp)) {
-                addRouter(regexp.toString(), fun, Q.extend({ ruleType: "regexp" }, opts))
+            var reg=transform(regexp);
+            if (Q.isString(reg)) {
+                addRouter(regexp, fun, Q.extend({ ruleType: "string",rule:regexp }, opts))
+            } else if (Q.isRegExp(reg)) {
+                addRouter(regexp, fun, Q.extend({ ruleType: "regexp",rule:reg }, opts))
             } else {
-                throw new Error("regexp type is error,please input RegExp or String");
+                throw new Error("regexp type is error,please input RegExp or String")
             }
+            return this
         },
         post: function (regexp, fun) {
-            this.router(regexp, fun, { method: "POST" })
+            return this.router(regexp, fun, { method: "POST" })
         },
         get: function (regexp, fun) {
-            this.router(regexp, fun, { method: "GET" })
+            return this.router(regexp, fun, { method: "GET" })
         }
     });
     var server = {
@@ -138,11 +161,14 @@
                         method = req.method,
                         path = url.replace(/[?].*/, ""),
                         execCount = 0;
-                    console.log("url:" + req.url);
-                    console.log("path:" + path);
-                    console.log("method:" + req.method);
-                    console.log("httpVersion:" + req.httpVersion);
-                    console.log("connection:" + req.connection);
+
+                    Log.log("---------------------------------------------------------------start");
+                     Log.log("url:" + req.url);
+                     Log.log("path:" + path);
+                     Log.log("method:" + req.method);
+                    /*                   
+                    Log.log("httpVersion:" + req.httpVersion);
+                    Log.log("connection:" + req.connection);*/
                     //取得所有的过滤方法
                     var execList = getAllFilterFun(url) || [];
 
@@ -150,7 +176,7 @@
                         for (var i = execCount; i < execList.length; i++) {
                             execCount++;
                             execList[i](req, res, execFilter);
-                            break;
+                            break
                         }
                         if (execCount == execList.length) {
                             execCount = 0;
@@ -158,13 +184,15 @@
                         }
                     }
                     execFilter(req, res);
+                    Log.log("===================================================================end");
                 } catch (e) {
-                    console.log("[ERROR]" + e.message);
+                    Log.log("[ERROR][" + e.message+"]");
                 }
             })
             return new app(service);
         }
     }
+    Q.Server=Q.Server||{};
     Q.Server.Http = server;
     module.exports = Q;
-})(require("./Qmiks"), require("./Qmiks.Server"));
+})(require("./Qmiks"));
