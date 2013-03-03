@@ -5,30 +5,29 @@
  */
 //server
 
-(function (Q) {
-    var Log={
-        error:function(msg,e){
-
+(function(Q) {
+    var Log = {
+        error: function(msg, e) {
+            this.log(msg, e)
+        },
+        debug: function(msg, e) {
+            this.log(msg, e)
 
         },
-        debug:function(msg,e){
-
-
-        },
-        info:function(msg,e){
-
+        info: function(msg, e) {
+            this.log(msg, e)
 
         },
-        error:function(msg,e){
-
+        error: function(msg, e) {
+            this.log(msg, e)
         },
         /* 等于 输出到debug+console */
-        log:function(msg,e){
-            var nm=msg;
-            if(e)mn+="\r\n["+e.message+"]";
+        log: function(msg, e) {
+            var nm = msg;
+            if (e) mn += "\r\n[" + e.message + "]";
             console.log(nm)
         }
     };
-    Q.Log=Log;
+    Q.Log = Log;
     module.exports = Q;
 })(require("./Qmiks"));

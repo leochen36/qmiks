@@ -3,7 +3,7 @@
  * @email:cwq0312@163.com
  * @version:0.91.008
  */
-var Qmiks = new (function () {
+var Qmiks = new(function() {
     /* 声明基础性字段   */
     var gme = this,
         encode = encodeURIComponent,
@@ -14,6 +14,7 @@ var Qmiks = new (function () {
         hasOwnProperty = Object.prototype.hasOwnProperty,
         Base = {};
     /* ----------------------- 声明基础性方法  start  */
+
     function trim(v) {
         return isNull(v) ? '' : R.call(v, rtrim, '')
     } //trim
@@ -23,6 +24,7 @@ var Qmiks = new (function () {
     } //isNull
 
     //像空值,包含空指名,空字符串,字符串= undefined,null
+
     function likeNull(v) {
         return isNull(v) || v == "undefined" || v == "null" || v == ""
     }
@@ -38,12 +40,14 @@ var Qmiks = new (function () {
     function isPlainObject(v) { //isPlainObject
         if (isNull(v) || v + '' != '[object Object]' || v.nodeType || v.setInterval) return !1;
         var k;
-        for (k in v) { }
+        for (k in v) {}
         return isNull(k) || hasOwnProperty.call(v, k)
     }
+
     function isObject(v) {
         return v instanceof Object
     }
+
     function isString(v) {
         return typeof v == 'string'
     } //isString
@@ -51,6 +55,7 @@ var Qmiks = new (function () {
     function isReg(v) {
         return v instanceof RegExp
     }
+
     function isFun(v) {
         return v instanceof Function
     } //isFunction
@@ -114,23 +119,25 @@ var Qmiks = new (function () {
             isarray = isArray(f),
             i = 1;
         for (; i < arguments.length; i++) {
-            each(arguments[i], function (k, v) {
+            each(arguments[i], function(k, v) {
                 isarray ? first.push(v) : first[k] = v
             })
         }
         return first
     }
     //复制对象
+
     function clone(source) {
         var target = new source.constructor(source.valueOf());
-        each(source, function (key, value) {
+        each(source, function(key, value) {
             target[key] = isObject(value) ? clone(value) : value
         })
         return r
     }
+
     function extend() {
         var first = arguments[0] || {},
-            index = 1;
+        index = 1;
         switch (arguments.length) {
             case 0:
                 return;
@@ -139,9 +146,9 @@ var Qmiks = new (function () {
                 index = 0;
                 break;
         }
-        each(slice.call(arguments, index), function (j, item) {
-            if(item){
-                each(item, function (key, value) {
+        each(slice.call(arguments, index), function(j, item) {
+            if (item) {
+                each(item, function(key, value) {
                     if (!isNull(value)) first[key] = value
                 })
             }
@@ -149,54 +156,110 @@ var Qmiks = new (function () {
         return first
     }
     /** 执行对象,如果对象是方法就执行并返回,否则就返回 */
+
     function execObject(obj, param) {
         return isFun(obj) ? v.apply(obj, param) : obj
     }
     /*把对象拼成 name=ccc&age=13这种http请求字符串*/
+
     function param(source) {
         var h = [];
-        each(source, function (i, val) {
+        each(source, function(i, val) {
             h.push(encode(val.name) + '=' + encode(execObject(v.value)))
         });
         return h.join('&')
     }
     /* 把对象合并成数组 */
+
     function map(array, callback) {
         var r = [],
             isfun = isFun(callback);
-        each(array, function (i, v) {
+        each(array, function(i, v) {
             isfun ? r.push(execObject(callback, [i, v])) : r.push(v)
         });
         return r
     }
+
     function filter(source, callback) {
         var r = [];
-        each(source, function (i, v) {
+        each(source, function(i, v) {
             r.push(execObject(callback, [i, v]))
         });
         return r
     }
+
     function grep(source, callback) {
-        return filter(source, function (key, val) {
+        return filter(source, function(key, val) {
             return callback ? callback(val) : !isNull(val)
         })
     }
+
     function inArray(value, array) {
         if (likeArray(array)) for (var i = 0; i < array.length; i++) if (array[i] === value) i;
         return -1
     }
+
     function rmArray(value, array) {
         var i = inArray(value, array);
-        if(i>0)array.splice(i, 1)
+        if (i > 0) array.splice(i, 1)
+    }
+
+
+
+    function qClass(baseClass, prop) {
+        var isInit = false;
+        // 只接受一个参数的情况 
+        if (typeof(baseClass) === "object") {
+            prop = baseClass;
+            baseClass = null
+        }
+        function F() {
+            if (isInit) {
+                if (baseClass) {
+                    this._base = function() {
+                        if (arguments.length > 0) {
+                            baseClass.apply(this, arguments)
+                        }
+                        return baseClass.prototype
+                    }
+                }
+                if (this.init) {
+                    this.init.apply(this, arguments)
+                }
+                isInit = false
+            }
+        }
+        // 如果此类需要从其它类扩展
+        if (baseClass) {
+            isInit = true;
+            F.prototype = new baseClass();
+            F.prototype.constructor = F;
+            // 覆盖父类的同名函数
+            for (var name in prop) {
+                if (prop.hasOwnProperty(name)) {
+                    // 如果此类继承自父类baseClass并且父类原型中存在同名函数name
+                    if (typeof(prop[name]) === "function" && typeof(F.prototype[name]) === "function") {
+                        F.prototype[name] = (function(name, fn) {
+                            return function() {
+                                this._base[name] = baseClass.prototype[name];
+                                return fn.apply(this, arguments)
+                            }
+                        })(name, prop[name])
+                    } else {
+                        F.prototype[name] = prop[name]
+                    }
+                }
+            }
+        }
+        return F
     }
     /* ----------------------- 声明基础性方法  end  */
     {
         var fn,
-            Q = function (selector, context) {
-                return init(selector, context)
-            },
-        settings = {
-        };
+        Q = function(selector, context) {
+            return init(selector, context)
+        },
+        settings = {};
         /** 继承函数
             可以有多个参数(参数都是对象,正常情况下是json类型的对象,不能是int等类型的基本类型变量)
             1个参数时,表示对Q对象设置或替换新方法
@@ -216,8 +279,8 @@ var Qmiks = new (function () {
             likeArray: likeArray,
             isBool: isBool,
             isString: isString,
-            isRegExp:isReg,
-            isDate: function (v) {
+            isRegExp: isReg,
+            isDate: function(v) {
                 return v instanceof Date
             },
             isObject: isObject,
@@ -226,12 +289,12 @@ var Qmiks = new (function () {
             likeNull: likeNull,
             trim: trim,
             /* 合并数据,并转换为数组*/
-            array: function (array) {
+            array: function(array) {
                 return merge([], array)
             },
             inArray: inArray,
             rmArray: rmArray,
-            unique: function (array) {
+            unique: function(array) {
                 for (var i = array.length - 1, j; i >= 0; i--) {
                     for (j = i - 1; j >= 0; j--) {
                         if (array[i] === array[j]) {
@@ -241,19 +304,20 @@ var Qmiks = new (function () {
                     }
                 }
             },
-            contains: function (source, child) {
+            contains: function(source, child) {
                 for (var k in source) if (source[k] === child) return !0;
                 return !1
             },
+            innherit:qClass,
             each: each,
             merge: merge,
             //合并数组或对象
             map: map,
-            serialize: function (a) {
+            serialize: function(a) {
                 return param(Q.serializeArray(a))
             },
-            serializeArray: function (a) {
-                return grep(a, function (v) {
+            serializeArray: function(a) {
+                return grep(a, function(v) {
                     return v && v.name ? {
                         name: v.name,
                         value: execObject(v.value)
@@ -266,19 +330,19 @@ var Qmiks = new (function () {
             stringify: toString,
             parseJSON: toObject,
             /* 取得时间 */
-            time: function (diff) {
+            time: function(diff) {
                 return parseInt(diff || 0) + (new Date()).getTime()
             },
             clone: clone,
-            delay: function (f, t) {
+            delay: function(f, t) {
                 var p = slice.call(arguments, 2);
-                return setTimeout(function () {
+                return setTimeout(function() {
                     f.apply(f, p)
                 }, t)
             },
-            cycle: function (f, t) {
+            cycle: function(f, t) {
                 var p = slice.call(arguments, 2);
-                return setInterval(function () {
+                return setInterval(function() {
                     f.apply(f, p)
                 }, t)
             },
@@ -291,7 +355,7 @@ var Qmiks = new (function () {
         } //is qmik
 
         function FM(v) {
-            return v.replace(/[A-Z]/g, function (v) {
+            return v.replace(/[A-Z]/g, function(v) {
                 return "-" + v.toLowerCase()
             })
         }
@@ -300,6 +364,7 @@ var Qmiks = new (function () {
 
         }
         //找compile()解析出的对象,判断当前的查找条件是否满足其对应的父查询条件 isCycle:是否遍历父节点,默认true
+
         function adapRule(o, qa, isCycle, c) {
 
         }
@@ -315,22 +380,22 @@ var Qmiks = new (function () {
         function init(selector, context) {
             return isQmiks(selector) ? selector : new QM(selector, context);
         }
-        Q.fn.extend = function (o) {
-            each(o, function (k, v) {
+        Q.fn.extend = function(o) {
+            each(o, function(k, v) {
                 QM.prototype[k] = v
             });
         }
         Q.fn.extend({
-            each: function (f) {
+            each: function(f) {
                 each(this, f)
             },
-            map: function (callback) {
+            map: function(callback) {
                 return map(this, callback)
             },
-            serialize: function () {
+            serialize: function() {
                 var r = [];
                 if (this) r = Q('input', this);
-                else each(this, function (i, v) {
+                else each(this, function(i, v) {
                     if (D(v)) Q.merge(r, Q.serializeArray(Q('input', v)))
                 });
                 return Q.serialize(r)
@@ -340,4 +405,8 @@ var Qmiks = new (function () {
         return Q
     }
 })();
-module.exports = Qmiks;
+try {
+    module.exports = Qmiks
+} catch (e) {
+    window.Qmiks = Qmiks
+}

@@ -107,11 +107,14 @@
         }
         return str;
     }
-    var app = function (server) {
+    /*var App = function (server) {
         var me = this;
         me.server = server;
-    };
-    Q.extend(app.prototype, {
+    };*/
+    var App=Q.innherit(http.Server,{
+
+    })
+    Q.extend(App.prototype, {
         listen: function (port) {
             this.server.listen(port);
             return this
@@ -162,11 +165,9 @@
                         path = url.replace(/[?].*/, ""),
                         execCount = 0;
 
-                    Log.log("---------------------------------------------------------------start");
-                     Log.log("url:" + req.url);
+                     /* Log.log("url:" + req.url);
                      Log.log("path:" + path);
                      Log.log("method:" + req.method);
-                    /*                   
                     Log.log("httpVersion:" + req.httpVersion);
                     Log.log("connection:" + req.connection);*/
                     //取得所有的过滤方法
@@ -184,15 +185,18 @@
                         }
                     }
                     execFilter(req, res);
-                    Log.log("===================================================================end");
+
                 } catch (e) {
                     Log.log("[ERROR][" + e.message+"]");
                 }
             })
-            return new app(service);
+            var app= new App(service);
+            app.server=service;
+            return app;
         }
     }
     Q.Server=Q.Server||{};
     Q.Server.Http = server;
     module.exports = Q;
 })(require("./Qmiks"));
+
