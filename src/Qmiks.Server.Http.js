@@ -111,7 +111,7 @@
         var me = this;
         me.server = server;
     };*/
-    var App=Q.innherit(http.Server,{
+    var App=Q.inherit(http.Server,{
 
     })
     Q.extend(App.prototype, {
