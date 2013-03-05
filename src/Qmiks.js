@@ -308,7 +308,7 @@ var Qmiks = new(function() {
                 for (var k in source) if (source[k] === child) return !0;
                 return !1
             },
-            innherit:qClass,
+            inherit:qClass,
             each: each,
             merge: merge,
             //合并数组或对象
