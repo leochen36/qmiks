@@ -24,80 +24,88 @@
             stream.on('connect', function(e) {
                 console.log("connect");
                 console.log(e)
-                stream.write('hello');
+               // stream.write('hello');
 
             });
             stream.on("secure",function(){
                 console.log(">>>>>>>>>>>>>>secure");
 
-            })
-            function resume() {
-                stream.resume();
-            }
+            });
+
             //  pause();
             stream.on('data', function(buffer) {
-                stream.pause();
+               // stream.pause();
                 console.log("------------------------------------------------------------------");
+                console.log("=========================stream.writeable:"+stream.writeable+",stream.readable:"+stream.readable);
+                console.log("-----stream.readyState:1:"+stream.readyState);
                 console.log(buffer);
-                var list = [];
-                for (var i = 0; i < buffer.length; i++) {
-                    var charValue = String.fromCharCode(buffer[i]);
-                    //console.log(charValue+"-"+buffer[i]);
-                }
 
-                var i, chr, tlength = 0,
-                    tstart = 0;
-                for (i = 0; i < buffer.length; i++) {
-                    chr = buffer[i];
-                    if (chr == 10 && tstart != i - 1) {
-                        if (buffer[i - 1] == 13) {
-                            nb = buffer.slice(tstart, i - 1);
-                        } else {
-                            nb = buffer.slice(tstart, i);
-                        }
 
-                       // console.log("nb:" + nb);
-                        if (nb.length > 0) {
-                            list.push(nb)
-                        }
-                        tstart = i + 1;
+                if(stream.readyState=="open"){
+                    var list = [];
+                    for (var i = 0; i < buffer.length; i++) {
+                        var charValue = String.fromCharCode(buffer[i]);
+                        //console.log(charValue+"-"+buffer[i]);
                     }
-                }
-                for (var i = list.length - 1; i >= 0; i--) {
-                    var skey = list[i].toString();
 
-                    if (skey.substring(0, mkey.length) == mkey) {
+                    var i, chr, tlength = 0,
+                        tstart = 0;
+                    for (i = 0; i < buffer.length; i++) {
+                        chr = buffer[i];
+                        if (chr == 10 && tstart != i - 1) {
+                            if (buffer[i - 1] == 13) {
+                                nb = buffer.slice(tstart, i - 1);
+                            } else {
+                                nb = buffer.slice(tstart, i);
+                            }
+
+                           // console.log("nb:" + nb);
+                            if (nb.length > 0) {
+                                list.push(nb)
+                            }
+                            tstart = i + 1;
+                        }
+                    }
+                    for (var i = list.length - 1; i >= 0; i--) {
+                        var skey = list[i].toString();
+
+                        if (skey.substring(0, mkey.length) == mkey) {
 
 
 
-                        stream.write("HTTP/1.1 101 Switching Protocols\r\n");
-                        stream.write("Upgrade: websocket\r\n");
-                        stream.write("Connection: Upgrade\r\n");
-                        stream.write("Date: " + new Date() + "\r\n");
+                            stream.write("HTTP/1.1 101 Switching Protocols\r\n");
+                            stream.write("Upgrade: websocket\r\n");
+                            stream.write("Connection: Upgrade\r\n");
+                            stream.write("Date: " + new Date() + "\r\n");
 
-                        var nm = skey.replace(mkey, "").trim();
-                        console.log('mm;' + nm + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-                        var hash = crypto.createHash("sha1");
-                        hash.update(nm + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-                        var ws_accept = hash.digest('base64');
+                            var nm = skey.replace(mkey, "").trim();
+                            console.log('mm;' + nm + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+                            var hash = crypto.createHash("sha1");
+                            hash.update(nm + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+                            var ws_accept = hash.digest('base64');
 
-                        console.log(ws_accept);
-                        stream.write("Sec-WebSocket-Accept: " + ws_accept + "\r\n");
-                        stream.write("WebSocket-Origin: http://localhost\r\n");
-                        stream.write("http://localhost:8100/testWebSocket.html\r\n");
+                            console.log(ws_accept);
+                            stream.write("Sec-WebSocket-Accept: " + ws_accept + "\r\n");
+                            stream.write("WebSocket-Origin: http://localhost\r\n");
+                            stream.write("http://localhost:8100/testWebSocket.html\r\n");
 
-                        stream.resume();
-                        stream.end();
-                        console.log("  stream.end();")
-                        return;
+                            console.log("-----stream.readyState:2:"+stream.readyState);
+                            stream.resume();
+    
+                            return;
+                        }
                     }
                 }
                 console.log("=====================================================");
                 stream.write("<a>");
 
-                stream.resume();
+                
                  stream.end();
+                 stream.resume();
             });
+            stream.on("close",function(){
+                console.log(">>>>>>>>>>111111111111111>close");
+            })
             stream.on('end', function() {
                 stream.write('==========================goodbye\r\n');
                 stream.end();
@@ -117,6 +125,9 @@
     server.on("stream", function(stream) {
         console.log("--------------------");
     })
+                server.on("close",function(){
+                console.log(">>>>>>>>>>>close");
+            })
     //server.listen(8110);
     console.log("server port:8124");
 
