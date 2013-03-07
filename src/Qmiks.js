@@ -206,11 +206,12 @@ var Qmiks = new(function() {
 
 
 
-    function qClass(baseClass, prop) {
+    function qClass(baseClass, opts) {
         var isInit = false;
+        opts=extend({},opts);
         // 只接受一个参数的情况 
         if (typeof(baseClass) === "object") {
-            prop = baseClass;
+            opts = baseClass;
             baseClass = null
         }
         function F() {
@@ -235,18 +236,18 @@ var Qmiks = new(function() {
             F.prototype = new baseClass();
             F.prototype.constructor = F;
             // 覆盖父类的同名函数
-            for (var name in prop) {
-                if (prop.hasOwnProperty(name)) {
+            for (var name in opts) {
+                if (opts.hasOwnProperty(name)) {
                     // 如果此类继承自父类baseClass并且父类原型中存在同名函数name
-                    if (typeof(prop[name]) === "function" && typeof(F.prototype[name]) === "function") {
+                    if (typeof(opts[name]) === "function" && typeof(F.prototype[name]) === "function") {
                         F.prototype[name] = (function(name, fn) {
                             return function() {
                                 this._base[name] = baseClass.prototype[name];
                                 return fn.apply(this, arguments)
                             }
-                        })(name, prop[name])
+                        })(name, opts[name])
                     } else {
-                        F.prototype[name] = prop[name]
+                        F.prototype[name] = opts[name]
                     }
                 }
             }
