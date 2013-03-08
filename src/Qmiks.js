@@ -203,17 +203,47 @@ var Qmiks = new(function() {
         var i = inArray(value, array);
         if (i > 0) array.splice(i, 1)
     }
+    /** 生成类的外观子类
+     *  baseInstance 包装类的实例,
+        [targetClass] 目标类,
+        [opts] 参数
+     */
 
+    function facade(baseInstance, targetClass, opts) {
+        opts = extend({
+            replace: false
+        }, opts);
 
+        function F() {};
+        F.prototype = baseInstance;
+        if (targetClass) {
+            var proto = targetClass.prototype;
+            for (var name in proto) {
+                // 如果此类继承自父类baseClass并且父类原型中存在同名函数name
+                if (typeof(proto[name]) === "function" && typeof(F.prototype[name]) === "function") {
+                    F.prototype[name] = (function(name, fn) {
+                        return function() {
+                            return fn.apply(this, arguments)
+                        }
+                    })(name, proto[name])
+                } else {
+                    F.prototype[name] = proto[name]
+                }
+            }
+        }
+        return F
+    }
+    /** 继承类 */
 
-    function qClass(baseClass, opts) {
+    function inherit(baseClass, prop) {
         var isInit = false;
-        opts=extend({},opts);
+        prop = extend({}, prop);
         // 只接受一个参数的情况 
         if (typeof(baseClass) === "object") {
-            opts = baseClass;
+            prop = baseClass;
             baseClass = null
         }
+
         function F() {
             if (isInit) {
                 if (baseClass) {
@@ -236,18 +266,18 @@ var Qmiks = new(function() {
             F.prototype = new baseClass();
             F.prototype.constructor = F;
             // 覆盖父类的同名函数
-            for (var name in opts) {
-                if (opts.hasOwnProperty(name)) {
+            for (var name in prop) {
+                if (prop.hasOwnProperty(name)) {
                     // 如果此类继承自父类baseClass并且父类原型中存在同名函数name
-                    if (typeof(opts[name]) === "function" && typeof(F.prototype[name]) === "function") {
+                    if (typeof(prop[name]) === "function" && typeof(F.prototype[name]) === "function") {
                         F.prototype[name] = (function(name, fn) {
                             return function() {
                                 this._base[name] = baseClass.prototype[name];
                                 return fn.apply(this, arguments)
                             }
-                        })(name, opts[name])
+                        })(name, prop[name])
                     } else {
-                        F.prototype[name] = opts[name]
+                        F.prototype[name] = prop[name]
                     }
                 }
             }
@@ -309,7 +339,8 @@ var Qmiks = new(function() {
                 for (var k in source) if (source[k] === child) return !0;
                 return !1
             },
-            inherit:qClass,
+            inherit: inherit, //生成子类
+            facade: facade, //生成外观类
             each: each,
             merge: merge,
             //合并数组或对象

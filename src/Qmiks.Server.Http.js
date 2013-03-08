@@ -92,9 +92,11 @@
         for (var k = 0; k < routers.length; k++) {
             if (routers[k].option.method == "ALL" || routers[k].option.method == method) {
                 if(routers[k].option.ruleType == "regexp"&&routers[k].rule.test(url)){
-                    routers[k].router(req, res)
+                    routers[k].router(req, res);
+                    break
                 }else if (routers[k].rule == url) {
-                    routers[k].router(req, res)
+                    routers[k].router(req, res);
+                    break
                 }
             }
         }
@@ -111,14 +113,8 @@
         var me = this;
         me.server = server;
     };*/
-    var App=Q.inherit(http.Server,{
-
-    })
+    var App=function(){};
     Q.extend(App.prototype, {
-        listen: function (port) {
-            this.server.listen(port);
-            return this
-        },
         /** 添加过滤器(就是拦截器),同一规则,可以有多个过滤器,优先过滤器,再触发路油器
         * path:过滤路径(正则表达式)
         * fun:如果符合过滤规则,触发方法
@@ -190,9 +186,8 @@
                     Log.log("[ERROR][" + e.message+"]");
                 }
             })
-            var app= new App(service);
-            app.server=service;
-            return app;
+            var fApp=Q.facade(service,App);
+            return new fApp()
         }
     }
     Q.Server=Q.Server||{};
