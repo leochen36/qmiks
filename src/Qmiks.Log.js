@@ -6,7 +6,11 @@
 //server
 
 (function(Q) {
-    var Log = {
+    function Log(cata) {
+        var me=this;
+        me._cata=cata;
+    }
+    Q.extend(Log.prototype, {
         error: function(msg, e) {
             this.log(msg, e)
         },
@@ -25,9 +29,9 @@
         log: function(msg, e) {
             var nm = msg;
             if (e) mn += "\r\n[" + e.message + "]";
-            console.log(nm)
+            console.log(this._cata+"--"+nm);
         }
-    };
+    });
     Q.Log = Log;
-    module.exports = Q;
+    module.exports = Log;
 })(require("./Qmiks"));

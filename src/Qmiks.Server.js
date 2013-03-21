@@ -9,39 +9,26 @@
     //加载其它模块
     require("./Qmiks.Log");
 
+
     var options = {
             type: "http"
         };
     Q.Server = {};
 
     //加载子模拟
-    var Http=require("./Qmiks.Server.Http").Server.Http;
-
+    var Http=require("./Qmiks.Server.Http").Http;
+    var WebSocket=require("./Qmiks.Server.WebSocket").WebSocket;
 
     var http,https;
     Q.extend(Q.Server.prototype,{
-        getHttpServer:function(){
-            return http;
+        createHttp:function(){
+            return Http.createServer();
         },
-        getHttpsServer:function(){
-            return https;
-        },
-        getSocketServer:function(){
-
-        },
-        getSebSocketServer:function(){
-
+        createWebSocket:function(){
+            return new WebSocket();
         }
     })
 
-    Q.createServer = function (_options) {
-        opts = Q.extend({}, _options, options);
-        switch (opts.type) {
-            case "https": break;
-            case "websocket": break;
-            case "socket": break;
-            default: http = Http.createServer();return http;
-        }
-    }
-    module.exports = Q;
+    module.exports = Q.Server;
+    
 })(require("./Qmiks"));

@@ -5,11 +5,18 @@
  */
 (function() {
     var fs = require("fs");
-    var $ = require("../src/Qmiks.Server");
+    var $ = require("../src/Qmiks");
+    require("../src/Qmiks.Server");
     console.log("load Qmik is OK");
     console.log("create http server");
-    var server = $.createServer();
+    console.log($.Server)
+    var server =  $.Server.createHttp();
     console.log("create http server success");
+
+
+    var os=require("os");
+    var path=require("path");  
+
     server.filter("*", function(req, res, filterChain) {
         //console.log("enter filter");
         res.writeHead(200, {
@@ -29,7 +36,7 @@
         res.end();
     });*/
     server.router("/abc", function(req, res) {
-        console.log("enter router");
+        //console.log("enter router");
         res.writeHead(200, {
             "Content-Type": "text/text"
         });
@@ -39,7 +46,7 @@
         res.end();
     });
     server.router("/abc/user", function(req, res) {
-        console.log("enter router /abc/user");
+       // console.log("enter router /abc/user");
         res.writeHead(200, {
             "Content-Type": "text/text"
         });
@@ -49,7 +56,7 @@
         res.end();
     });
     server.get("/abc/get", function(req, res) {
-        console.log("enter router get /abc/get");
+        //console.log("enter router get /abc/get");
         res.writeHead(200, {
             "Content-Type": "text/text"
         });
@@ -60,10 +67,9 @@
     });
     server.get(/\S*[.](js)/, function(req, res) {
         var url = req.url;
-        console.log("url-js:" + url);
+
         var path;
         path = "./test" + url;
-        console.log("path:" + path);
         //path=fs.realpathSync(path)
         //fs.open(path,"r");
         var file = fs.readFileSync(path, "utf8");
@@ -78,10 +84,14 @@
     });
     server.get(/\S*[.](html|htm)/, function(req, res) {
         var url = req.url;
-        console.log("url-html:" + url);
+        var paramSepIdx=url.indexOf("?");
+        if(paramSepIdx>-1)
+            url=url.substring(0,url.indexOf("?"));
+
+        //console.log("url-html:" + url);
         var path;
         path = "./test" + url;
-        console.log("path:" + path);
+        //console.log("path:" + path);
         //path=fs.realpathSync(path)
         //fs.open(path,"r");
         var file = fs.readFileSync(path, "utf8");
@@ -94,20 +104,81 @@
         res.end();
     });
     server.get("/ws", function(req, res) {
-        var url = req.url;
-        console.log(">>>>>>>ws:" + url);
-        
+        console.log("request websocket!");
+        function toObject(buffer) {
+            var i,
+            chr,
+            tstart = 0,
+                nb,
+                vpIdx = 0,
+                obj = {};
+            for (i = 0; i < buffer.length; i++) {
+                chr = buffer[i];
+                if (chr == 10 && tstart != i - 1) {
+                    if (buffer[i - 1] == 13) {
+                        nb = buffer.slice(tstart, i - 1);
+                    } else {
+                        nb = buffer.slice(tstart, i);
+                    }
+                    if (nb.length > 0) {
+                        nb = nb.toString();
+                        if (vpIdx == 0) {
 
-        res.write("ok");
-        res.end();
+                            obj.protocolAgent = nb
+                        } else {
+                            nb = nb.split(": ");
+                            obj[nb[0]] = nb[1]
+                        }
+                        vpIdx++;
+                    }
+
+
+                    tstart = i + 1;
+                }
+            }
+            return obj
+        }
+        var obj = toObject(buffer);
+        for (var key in obj) {
+            console.log(">>>>>>>>>" + key)
+        }
+        var array = [],
+            frame = [];
+        //array.push(obj.protocolAgent);
+        var FIN = "1",
+            RSV1 = "0",
+            RSV2 = "0",
+            RSV3 = "0",
+            Opcode = "%x10",
+            Mask = "0",
+            Payloadlen = ""
+
+
+        array.push("HTTP/1.1 101 Switching Protocols");
+        array.push("Upgrade: " + obj["Upgrade"]);
+        array.push("Connection: " + obj["Connection"]);
+
+        var hash = crypto.createHash("sha1");
+        hash.update(obj["Sec-WebSocket-Key"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+        var ws_accept = hash.digest('base64');
+        array.push("Sec-WebSocket-Accept: " + ws_accept);
+        array.push("Sec-WebSocket-Protocol: chat");
+        array.push("Sec-WebSocket-Version: " + obj["Sec-WebSocket-Version"]);
+        array.push("WebSocket-Origin: " + obj["Origin"]);
+        // array.push("(Challenge Response): 00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00");
+        // array.push("WebSocket-Location: "+obj["WebSocket-Location"]);
+        console.log("=================================")
+        console.log(array.join("\r\n") + "\r\n");
+        res.write(array.join("\r\n") + "\r\n")
+   
     });
     server.listen(8100);
 
     server.on("connection", function() {
-        console.log("connection--------------------------------------------------");
+        //console.log("connection--------------------------------------------------");
     })
     server.on("request", function() {
-        console.log("request--------------------------------------------------");
+      //  console.log("request--------------------------------------------------");
     })
     server.on("upgrade", function() {
         console.log("upgrade--------------------------------------------------");

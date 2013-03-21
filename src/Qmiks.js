@@ -14,7 +14,14 @@ var Qmiks = new(function() {
         hasOwnProperty = Object.prototype.hasOwnProperty,
         Base = {};
     /* ----------------------- 声明基础性方法  start  */
-
+    String.prototype.endsWith=function(str){
+        if(this.length<str.length)return false;
+        return this.substring(this.length-str.length,this.length)===str;
+    }
+    String.prototype.startsWith=function(str){
+        if(this.length<str.length)return false;
+        return this.substring(0,str.length)===str;
+    }
     function trim(v) {
         return isNull(v) ? '' : R.call(v, rtrim, '')
     } //trim
@@ -379,7 +386,7 @@ var Qmiks = new(function() {
                 }, t)
             },
             toLower: toLower,
-            toUpper: toUpper
+            toUpper: toUpper,
         });
 
         function isQmiks(v) {
