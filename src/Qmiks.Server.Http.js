@@ -14,11 +14,13 @@
 (function(Q) {
     //加载模块
     require("./Qmiks.Server");
-    var log = new require("./Qmiks.Log")("Qmiks.Server.Http");
     var fs = require("fs");
     var http = require("http");
     var os = require("os");
     var httpServer = http.Server;
+    var Log=require("./Qmiks.Log");
+    var log = new Log("Qmiks.Server.Http");
+
 
 
     Q.Server = Q.Server;

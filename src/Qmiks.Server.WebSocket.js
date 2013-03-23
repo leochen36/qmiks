@@ -9,15 +9,15 @@
     var fs = require("fs");
     var Buffer = require('buffer').Buffer;
     var net = require('net');
-
-    var log = new require("./Qmiks.Log")("Qmiks.Server.WebSocket");;
-
-    Q.Server.WebSocket = {};
-
-    //运行参数
+    var Log=require("./Qmiks.Log");
+    var WsFrame=require("./Qmiks.Server.WebSocket.WsFrame");
+    //握手运行参数
     var length = 128,
         mproto = "GET / HTTP/1.1",
         mkey = "Sec-WebSocket-Key: ";
+
+    //其它变量
+    var log = new Log("Qmiks.Server.WebSocket");   
 
     //把第一次的握手请求头转换为json对象
 
@@ -95,8 +95,8 @@
         var server = new net.Server(function(stream) {
             var shakeHands = true; //握手
             stream.on("data", function(buffer) {
-                stream.pause();
                 try {
+                    stream.pause();
                     if (stream.readyState === "open") {
                         if (shakeHands) {
                             //握手
@@ -108,17 +108,21 @@
                             server._write=function(data){
                                 wirte(data,stream);
                             }
+                            //握手
+                            server.onOpen&&server.onOpen(stream);
                             return
                         } else {
-                            server.onData&&server.onData(buffer);
+                            //console.log(buffer);
+                            var frame=new WsFrame(buffer);
+                            console.log(frame.payloadData.toString("utf8"))
+                            //消息
+                            server.onTextData&&server.onTextData(buffer);
                             return;
                         }
                     } else if (stream.readyState === "readOnly") {
 
-                        console.log("deal readOnly v");
-                        console.log("");
                         stream.write("read ")
-
+                        stream.resume();
                         return;
                     } else if (stream.readyState === "writeOnly") {
                         console.log("deal writeOnly v");
@@ -127,15 +131,24 @@
                         return;
                     }
                 } catch (e) {
-                    log.error(e.stack);
+                    //log.log(e);
+                   log.log("[ERROR][" + e.name + ":"+e.fileName+":"+e.stack+ "]");
+                }finally{
+                    stream.resume();
                 }
-                stream.resume();
             });
         })
         return server;
     }
+
     Q.extend(net.Server.prototype, {
-        onData: function(buffer) {
+        onOpen:function(stream){
+
+        },
+        onTextData: function(data) {
+
+        },
+        onDataString: function(buffer) {
 
         },
         write: function(data) {
@@ -146,6 +159,9 @@
         var server = createServer();
         return server;
     };
+    Q.Server.WebSocket = function(){};
+    Q.inherit(Q.Server.WebSocket,net.Server);
+
 
 
     module.exports = Q.Server.WebSocket;

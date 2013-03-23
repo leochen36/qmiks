@@ -6,6 +6,9 @@
 //server
 
 (function(Q) {
+    var EventEmitter=require('events').EventEmitter;
+
+
     function Log(cata) {
         var me=this;
         me._cata=cata;
@@ -27,9 +30,17 @@
         },
         /* 等于 输出到debug+console */
         log: function(msg, e) {
-            var nm = msg;
-            if (e) mn += "\r\n[" + e.message + "]";
-            console.log(this._cata+"--"+nm);
+            var m;
+            if(msg instanceof EventEmitter){
+                m=msg.stack;
+                e=null;
+            }else{
+                m=msg;
+            }
+            if(e){
+                m += "\r\n[" + msg.stack + "]";
+            }
+            console.log(this._cata+"--"+m);
         }
     });
     Q.Log = Log;

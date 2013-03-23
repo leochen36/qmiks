@@ -24,6 +24,10 @@ function connectToServer() {
 
     ws.onopen = function() {
         console.log("socket连接成功");
+        setInterval(function(){
+
+                sendMessage("dafsd---");
+        },3000);
     };
 
     // 收到服务器发送的文本消息, event.data表示文本内容
@@ -44,12 +48,14 @@ function connectToServer() {
 // 发送消息给服务器
 function sendMessage(dtoObj) {
     try {
-        console.log("websocket status:"+ws.readyState +",protocol :"+ws.protocol  );
+        //console.log("websocket status:"+ws.readyState +",protocol :"+ws.protocol  );
+        console.log("send:"+dtoObj);
         document.getElementById("content").innerHTML="websocket status:"+ws.readyState +",protocol :"+ws.protocol ;
         if (ws != null) {   
-            ws.send(JSON.stringify(dtoObj));
+            ws.send(dtoObj);
+            ws.send("你好吗");
         } else {
-            disconnectTip();
+        
         }
     } catch (e) {
         if (dtoObj) {
@@ -60,7 +66,7 @@ function sendMessage(dtoObj) {
              console.log("服务器连接异常22,"+e.message);
             console.log(e);
         }
-        console.log("异常:" + e.message);
+        console.log(e.stack);
     }
 
 }

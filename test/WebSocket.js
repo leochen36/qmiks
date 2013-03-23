@@ -15,9 +15,14 @@
     var app= Q.Server.createWebSocket();
 
     app.listen(8124);
-    app.on("data", function(buffer,write){
-        write.write();
-    })
+    app.onTextData=function(data){
+        //console.log(buffer);
+       // var ar=buffer.slice(0,buffer.length);
+        //console.log(ar);
+       // var m=new String(buffer);
+        //var buf=new Buffer(buffer.toString(),"utf8");
+        //console.log(buffer.toString("gbk"))
+    };
     /*
     var Buffer = require('buffer').Buffer;
 
