@@ -39,7 +39,7 @@
         mainJS = argv[1], //执行主js
         runDir = mainJS.substring(0, mainJS.lastIndexOf(separator)) //工程运行目录
         ;
-
+        runDir = runDir.substring(0, runDir.lastIndexOf(separator))+separator+"web";
     /* 添加过滤器 */
 
     function addFilter(key, fun, opts) {
@@ -181,6 +181,7 @@
         var suf = Config.mimeMapping[suffix];
         if (suf == null) return false;
         try {
+            console.log("file:"+filePath);
             file = fs.readFileSync(filePath, "utf8");
         } catch (e) {
             _404(server, url, req, res, suf.mimeType);
