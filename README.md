@@ -24,13 +24,13 @@ Qmiks.js是基础框架文件
             rmArray(value, array)//删除数组value值
             unique(array)//给数组去重
             contains(source, child)//source是否包含 child
-            inherit(subClass, superClass)/** 
+            inherit(subClass, superClass)// 
 																		        继承类
 																		        子类subClass继承父类superClass的属性方法,
 																		        注:子类有父类的属性及方法时,不会被父类替换
-																		    */
+																		    
             each(source, callback) //迭代 
-            merge()	    /** 合并对象或数组
+            merge()	    // 合并对象或数组
 										        至少两个参数
 										        说明:1. 如果第一个参数是数组,就会把后面参数(参数会做一层解析,取里面的字段,元素)添加到数组里,
 										            例子:var array=[1,2],user={name:"me",age:11},list=[11,23];
@@ -40,7 +40,7 @@ Qmiks.js是基础框架文件
 										            例子:var array=[1,2],user={name:"me",age:11},obj={result:"yes"};
 										                user=merge(user,array,obj);
 										                结果:user={name:"me",age:11,result:"yes",0:1,1:2}
-										    */
+										    
             
             map(array, callback)//合并数组或对象
             serialize(array)
