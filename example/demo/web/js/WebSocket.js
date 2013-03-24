@@ -29,7 +29,7 @@ function connectToServer() {
 
     // 收到服务器发送的文本消息, event.data表示文本内容
     ws.onmessage = function(msg) {
-       console.log( msg)
+       console.log( msg.data)
     };
     // 关闭WebSocket的回调
     ws.onclose = function(eve) {

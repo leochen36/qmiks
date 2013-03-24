@@ -39,7 +39,7 @@
         mainJS = argv[1], //执行主js
         runDir = mainJS.substring(0, mainJS.lastIndexOf(separator)) //工程运行目录
         ;
-        runDir = runDir.substring(0, runDir.lastIndexOf(separator))+separator+"web";
+    runDir = runDir.substring(0, runDir.lastIndexOf(separator)) + separator + "web";
     /* 添加过滤器 */
 
     function addFilter(key, fun, opts) {
@@ -71,7 +71,6 @@
     function getAllFilterFun(url) {
         var list = [],
             i,
-            j,
             _ft;
         for (i = 0; i < filters.length; i++) {
             _ft = filters[i];
@@ -181,7 +180,6 @@
         var suf = Config.mimeMapping[suffix];
         if (suf == null) return false;
         try {
-            console.log("file:"+filePath);
             file = fs.readFileSync(filePath, "utf8");
         } catch (e) {
             _404(server, url, req, res, suf.mimeType);
@@ -227,6 +225,7 @@
         return server;
     };
     //顶级路油器,用于处理静态文件,对外部不开放
+
     function topDealRouter(server, url, req, res) {
         //最顶级过滤器,用户处理静态文件
         return staticFile(server, url, req, res);
