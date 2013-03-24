@@ -133,16 +133,15 @@ var Qmiks = new(function() {
         }
         return first
     }
-    //复制对象
-
+    //克隆对象
     function clone(source) {
-        var target = new source.constructor(source.valueOf());
-        each(source, function(key, value) {
-            target[key] = isObject(value) ? clone(value) : value
-        })
-        return r
+        function F(){
+            if(isFun(source))source.apply(this,arguments);
+        };
+        extend(F,source);
+        return F;
     }
-
+    //简单的属性及方法copy
     function extend() {
         var first = arguments[0] || {},
         index = 1;

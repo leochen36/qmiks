@@ -14,7 +14,7 @@
     var Log = require("./Qmiks.Log");
     var WsFrame = require("./Qmiks.Server.WebSocket.WsFrame");
     var WsOut = require("./Qmiks.Server.WebSocket.WsOut");
-
+    var Config=require("./Qmiks.Server.WebSocket.Config");
     //其它变量
     var log = new Log("Qmiks.Server.WebSocket");
 
@@ -111,11 +111,17 @@
     Q.Server.WebSocket = function() {
         var me=this;
         net.Server.apply(me, arguments);
+        
         me.on("connection", function(socket) {
             var shakeHands = true; //握手
             //绑定消息接收体
             var inbound = new Inbound(socket);
+            socket.setTimeout(Config.timeout);
+            socket.setNoDelay(!Config.delay);
             me.onAccept(inbound);
+            socket.on("timeout",function(){
+                socket.destroy();
+            })
             //接受消息
             socket.on("data", function(buffer) {
                 try {
@@ -153,7 +159,6 @@
                                 case 7:
                                     break;
                                 case 8:
-                                    socket.end();
                                     socket.destroy();
                                     break;
                                 case 9:

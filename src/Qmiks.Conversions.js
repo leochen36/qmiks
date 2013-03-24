@@ -1,9 +1,9 @@
 /**
+    数据转换
  * @author:leochen
  * @email:cwq0312@163.com
  * @version:0.91.008
  */
-//server
 
 (function(Q) {
     //加载其它模块
