@@ -16,7 +16,8 @@
 
     app.listen(8124);
     app.onTextData=function(data){
-        //console.log(buffer);
+        //console.log("data:"+data);
+        this.write("dafsd---");
        // var ar=buffer.slice(0,buffer.length);
         //console.log(ar);
        // var m=new String(buffer);

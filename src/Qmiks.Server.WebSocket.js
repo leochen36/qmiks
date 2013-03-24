@@ -9,15 +9,15 @@
     var fs = require("fs");
     var Buffer = require('buffer').Buffer;
     var net = require('net');
-    var Log=require("./Qmiks.Log");
-    var WsFrame=require("./Qmiks.Server.WebSocket.WsFrame");
+    var Log = require("./Qmiks.Log");
+    var WsFrame = require("./Qmiks.Server.WebSocket.WsFrame");
     //握手运行参数
     var length = 128,
         mproto = "GET / HTTP/1.1",
         mkey = "Sec-WebSocket-Key: ";
 
     //其它变量
-    var log = new Log("Qmiks.Server.WebSocket");   
+    var log = new Log("Qmiks.Server.WebSocket");
 
     //把第一次的握手请求头转换为json对象
 
@@ -70,30 +70,17 @@
                 array.push("Sec-WebSocket-Version: " + header["Sec-WebSocket-Version"]);
                 array.push("WebSocket-Origin: " + header["Origin"]);
                 array.push("Sec-WebSocket-Accept: " + ws_accept);
-                array.push("\r\n\r\n");
+                //array.push("\r\n\r\n");
+                array.push("\r\n");
                 return array.join("\r\n");
             default:
         }
-    }
-    //向客户端天写数据
-
-    function write(data, stream) {
-        var frame = [];
-        var FIN = "1",
-            RSV1 = "0",
-            RSV2 = "0",
-            RSV3 = "0",
-            Opcode = "%x10",
-            Mask = "0",
-            Payloadlen = "";
-        console.log("normal msg....");
-
-        stream.write("agooo");
     }
 
     function createServer() {
         var server = new net.Server(function(stream) {
             var shakeHands = true; //握手
+            server._stream=stream;
             stream.on("data", function(buffer) {
                 try {
                     stream.pause();
@@ -105,18 +92,48 @@
                             var array = [];
                             var resProtocol = getResponseProtocol(obj);
                             stream.write(resProtocol);
-                            server._write=function(data){
-                                wirte(data,stream);
+                            server._write = function(data) {
+                                wirte(data, stream);
                             }
                             //握手
-                            server.onOpen&&server.onOpen(stream);
+                            server.onOpen && server.onOpen(stream);
                             return
                         } else {
-                            //console.log(buffer);
-                            var frame=new WsFrame(buffer);
-                            console.log(frame.payloadData.toString("utf8"))
-                            //消息
-                            server.onTextData&&server.onTextData(buffer);
+                            console.log("1....");
+                            console.log(buffer);
+                            var frame = new WsFrame(buffer);
+                            console.log(frame.payloadData.toString())
+                            switch (frame.getOpCode()) {
+                                case 0://表示连续消息片断
+                                    break;
+                                case 1:// 表示文本消息片断
+                                    server.onTextData&&server.onTextData(frame.payloadData.toString("utf8"));
+                                    break;
+                                case 2://表示二进制消息片断
+                                    server.onByteData&&server.onByteData(frame.payloadData);
+                                    break;
+                                case 3://下面表示 为将来的非控制消息片断保留的操作码
+                                case 4:
+                                case 5:
+                                case 6:
+                                case 7:
+                                    break;
+                                case 8:
+                                    stream.end();
+                                    stream.destroy();
+                                    break;
+                                case 9://表示心跳检查的ping
+                                    break;
+                                case 10://表示心跳检查的pong
+                                    break;
+                                case 11://下面为将来的控制消息片断的保留操作码
+                                case 12:
+                                case 13:
+                                case 14:
+                                case 15:
+
+                                    break;
+                            }
                             return;
                         }
                     } else if (stream.readyState === "readOnly") {
@@ -132,8 +149,8 @@
                     }
                 } catch (e) {
                     //log.log(e);
-                   log.log("[ERROR][" + e.name + ":"+e.fileName+":"+e.stack+ "]");
-                }finally{
+                    log.log("[ERROR][" + e.name + ":" + e.fileName + ":" + e.stack + "]");
+                } finally {
                     stream.resume();
                 }
             });
@@ -142,25 +159,28 @@
     }
 
     Q.extend(net.Server.prototype, {
-        onOpen:function(stream){
+        onOpen: function(stream) {
 
         },
         onTextData: function(data) {
 
         },
-        onDataString: function(buffer) {
+        onByteData: function(buffer) {
 
         },
         write: function(data) {
-            this._write(data);
+            var frame=WsFrame.textToWsFrame(data+"\n");
+            console.log("2....");
+            console.log(frame);
+            this._stream.write(frame);
         }
     });
     Q.Server.createWebSocket = function(opts) {
         var server = createServer();
         return server;
     };
-    Q.Server.WebSocket = function(){};
-    Q.inherit(Q.Server.WebSocket,net.Server);
+    Q.Server.WebSocket = function() {};
+    Q.inherit(Q.Server.WebSocket, net.Server);
 
 
 

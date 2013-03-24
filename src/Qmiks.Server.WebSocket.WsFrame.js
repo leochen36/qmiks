@@ -18,15 +18,14 @@
     function WsFrame(buffer) {
         var me = this,
             index = 0,
-            first = buffer.readUInt8(index++),
-            b = first & 255;
+            b = buffer.readUInt8(index++),
+            b = b & 255;
         me.fin = (b & 128) > 0; //boolean ,1位，用来表明这是一个消息的最后的消息片断，当然第一个消息片断也可能是最后的一个消息片断；
         me.rsv = (b & 112) >>> 4; //int,由三个组成,各占1位，如果双方之间没有约定自定义协议，那么这几位的值都必须为0,否则必须断掉WebSocket连接；
         me.opCode = b & 15; //byte 4位操作码，定义有效负载数据，如果收到了一个未知的操作码，连接也必须断掉
-        me.mask = b & 128 >>> 7; //:1位，定义传输的数据是否有加掩码,如果设置为1,掩码键必须放在masking-key区域，客户端发送给服务端的所有消息，此位的值都是1；
-
 
         b = buffer.readUInt8(index++);
+        me.mask = (b & 128) >>> 7; //:1位，定义传输的数据是否有加掩码,如果设置为1,掩码键必须放在masking-key区域，客户端发送给服务端的所有消息，此位的值都是1；
         if ((me.mask) == 0) {
             throw new Error("frame.notMasked");
         }
@@ -43,13 +42,13 @@
                 var bytes = new Array(2);
                 read(buffer, bytes, index);
                 index += bytes.length;
-                me.payloadLength = Q.Conversions.byteArrayToLong(bytes);
+                me.payloadLength = Q.Conversions.byteArrayToIng(bytes);
                 break;
             case 127:
                 var bytes = new Array(8);
                 read(buffer, bytes, index);
                 index += bytes.length;
-                me.payloadLength = Q.Conversions.byteArrayToLong(bytes);
+                me.payloadLength = Q.Conversions.byteArrayToIng(bytes);
                 break;
         }
         //如果请求的是控制指令
@@ -105,6 +104,65 @@
 
         }
     });
+    WsFrame.textToWsFrame = function(data) {
+        return textToWsFrame(data);
+    }
+    var unitValue = 1;
+
+    function textToWsFrame(data) {
+        var bufTxt = new Buffer(data, "utf8"),
+            maskingKey = [nextRandom(), nextRandom(), nextRandom(), nextRandom()],
+            bufSize = bufTxt.length + 2,
+            index = 0,
+            byte1 = 128 + (1),
+            byte2 = 0,
+            byte3;
+        if (bufTxt.length <= 125) {
+            byte2 += bufTxt.length;
+        } else if (bufTxt.length <= 65535) {
+            byte2 += 126;
+            byte3 = bufTxt.length;
+            bufSize += 2;
+        } else if (bufTxt.length > 65535) {
+            byte2 += 127;
+            byte3 = bufTxt.length;
+            bufSize += 8;
+        }
+
+        var buffer = new Buffer(bufSize);
+        buffer.writeUInt8(byte1, index++);
+        buffer.writeUInt8(byte2, index++);
+        if (bufTxt.length > 125 && bufTxt.length <= 65535) {
+            //buffer.writeUInt32BE(byte3, ++index);
+            buffer.writeUInt8(byte3 >>> 8, index++);
+            buffer.writeUInt8(byte3 & 255, index++);
+
+        } else if (bufTxt.length > 65535) {
+            buffer.writeUInt8(0, index++);
+            buffer.writeUInt8(0, index++);
+            buffer.writeUInt8(0, index++);
+            buffer.writeUInt8(0, index++);
+            buffer.writeUInt8(byte3 >>> 24, index++);
+            buffer.writeUInt8(byte3 >>> 16, index++);
+            buffer.writeUInt8(byte3 >>> 8, index++);
+            buffer.writeUInt8(byte3 & 255, index++);
+        }
+        for (var i in maskingKey) {
+            //buffer.writeUInt8(maskingKey[i], index++);
+        }
+        //antiMaskData(bufTxt, maskingKey);
+        bufTxt.copy(buffer, index, 0, bufTxt.length);
+        return buffer;
+    }
+
+    function nextRandom() {
+        return parseInt((Math.random() * 256.0));
+    }
+
+    function getLength(bufTxt) {
+        if (data.length <= 125) return 125;
+        if (data.length <= 65535) return;
+    }
 
     function read(buffer, bytes, index) {
         var read = 0;

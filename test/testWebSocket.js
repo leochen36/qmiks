@@ -4,7 +4,7 @@ var ws = null;
 function connectToServer() {
   
     // 设定WebSocket,注意协议是ws，请求是指向对应的WebSocketServlet的
-    var url = "ws://127.0.0.1:8124/ws";
+    var url = "ws://127.0.0.1:8124/";
     console.log(url);
 
     // 创建WebSocket实例，下面那个MozWebSocket是Firefox的实现,EsWebSocket为宜搜webview中的实现
@@ -24,15 +24,12 @@ function connectToServer() {
 
     ws.onopen = function() {
         console.log("socket连接成功");
-        setInterval(function(){
 
-                sendMessage("dafsd---");
-        },3000);
     };
 
     // 收到服务器发送的文本消息, event.data表示文本内容
     ws.onmessage = function(msg) {
-       console.log("000000>msg:"+msg)
+       console.log( msg)
     };
     // 关闭WebSocket的回调
     ws.onclose = function(eve) {
@@ -52,7 +49,7 @@ function sendMessage(dtoObj) {
         console.log("send:"+dtoObj);
         document.getElementById("content").innerHTML="websocket status:"+ws.readyState +",protocol :"+ws.protocol ;
         if (ws != null) {   
-            ws.send(dtoObj);
+ 
             ws.send("你好吗");
         } else {
         
@@ -74,8 +71,9 @@ function sendMessage(dtoObj) {
 connectToServer();
 
 function send(){
-    setTimeout(function(){
-        sendMessage({name:"me"});
-    },3000);
+        setInterval(function(){
+
+                sendMessage("dafsd---");
+        },3000);
 }
 send();
