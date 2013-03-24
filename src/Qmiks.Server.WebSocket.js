@@ -9,12 +9,11 @@
     var fs = require("fs");
     var Buffer = require('buffer').Buffer;
     var net = require('net');
+
+    //框架组件
     var Log = require("./Qmiks.Log");
     var WsFrame = require("./Qmiks.Server.WebSocket.WsFrame");
-    //握手运行参数
-    var length = 128,
-        mproto = "GET / HTTP/1.1",
-        mkey = "Sec-WebSocket-Key: ";
+    var WsOut = require("./Qmiks.Server.WebSocket.WsOut");
 
     //其它变量
     var log = new Log("Qmiks.Server.WebSocket");
@@ -76,57 +75,70 @@
             default:
         }
     }
+    //创建服务
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
     function createServer() {
-        var server = new net.Server(function(stream) {
+        var server = new net.Server(function(socket) {
             var shakeHands = true; //握手
-            server._stream=stream;
-            stream.on("data", function(buffer) {
+
+            //绑定消息接收体
+            var inbound = new Inbound(socket);
+            server.onAccept(inbound);
+
+            //接受消息
+            socket.on("data", function(buffer) {
                 try {
-                    stream.pause();
-                    if (stream.readyState === "open") {
+                    console.log(socket instanceof net.Socket)
+                    socket.pause();
+                    server._socket = socket;
+                    if (socket.readyState === "open") {
                         if (shakeHands) {
                             //握手
                             shakeHands = false;
                             var obj = toObject(buffer);
                             var array = [];
                             var resProtocol = getResponseProtocol(obj);
-                            stream.write(resProtocol);
+                            socket.write(resProtocol);
                             server._write = function(data) {
-                                wirte(data, stream);
+                                wirte(data, socket);
                             }
                             //握手
-                            server.onOpen && server.onOpen(stream);
+                            inbound.onOpen(socket);
                             return
                         } else {
-                            console.log("1....");
-                            console.log(buffer);
                             var frame = new WsFrame(buffer);
-                            console.log(frame.payloadData.toString())
                             switch (frame.getOpCode()) {
-                                case 0://表示连续消息片断
+                                case 0:
+                                    //表示连续消息片断
                                     break;
-                                case 1:// 表示文本消息片断
-                                    server.onTextData&&server.onTextData(frame.payloadData.toString("utf8"));
+                                case 1:
+                                    // 表示文本消息片断
+                                    inbound.onTextData(frame.payloadData.toString("utf8"));
                                     break;
-                                case 2://表示二进制消息片断
-                                    server.onByteData&&server.onByteData(frame.payloadData);
+                                case 2:
+                                    //表示二进制消息片断
+                                    inbound.onByteData(frame.payloadData);
                                     break;
-                                case 3://下面表示 为将来的非控制消息片断保留的操作码
+                                case 3:
+                                    //下面表示 为将来的非控制消息片断保留的操作码
                                 case 4:
                                 case 5:
                                 case 6:
                                 case 7:
                                     break;
                                 case 8:
-                                    stream.end();
-                                    stream.destroy();
+                                    socket.end();
+                                    socket.destroy();
                                     break;
-                                case 9://表示心跳检查的ping
+                                case 9:
+                                    //表示心跳检查的ping
                                     break;
-                                case 10://表示心跳检查的pong
+                                case 10:
+                                    //表示心跳检查的pong
                                     break;
-                                case 11://下面为将来的控制消息片断的保留操作码
+                                case 11:
+                                    //下面为将来的控制消息片断的保留操作码
                                 case 12:
                                 case 13:
                                 case 14:
@@ -136,45 +148,51 @@
                             }
                             return;
                         }
-                    } else if (stream.readyState === "readOnly") {
+                    } else if (socket.readyState === "readOnly") {
 
-                        stream.write("read ")
-                        stream.resume();
+                        socket.write("read ")
+                        socket.resume();
                         return;
-                    } else if (stream.readyState === "writeOnly") {
+                    } else if (socket.readyState === "writeOnly") {
                         console.log("deal writeOnly v");
-                        stream.write("hwhw write");
-
+                        socket.write("hwhw write");
                         return;
                     }
                 } catch (e) {
-                    //log.log(e);
-                    log.log("[ERROR][" + e.name + ":" + e.fileName + ":" + e.stack + "]");
+                    log.log("[ERROR][" + e.stack + "]");
                 } finally {
-                    stream.resume();
+                    socket.resume();
                 }
             });
         })
         return server;
     }
-
     Q.extend(net.Server.prototype, {
-        onOpen: function(stream) {
+        onAccept: function(inbound) {}
+    });
+    //消息接受类
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        },
-        onTextData: function(data) {
-
-        },
-        onByteData: function(buffer) {
-
-        },
+    function Inbound(socket) {
+        var me = this;
+        me._socket = socket;
+        me.wsOut = new WsOut(socket);
+    }
+    Q.extend(Inbound.prototype, {
+        onOpen: function(socket) {},
+        onTextData: function(data) {},
+        onByteData: function(buffer) {},
         write: function(data) {
-            var frame=WsFrame.textToWsFrame(data+"\n");
-            console.log("2....");
-            console.log(frame);
-            this._stream.write(frame);
+            this.wsOut.writeTextData(data);
+        },
+        writeTextData: function(data) {
+            this.wsOut.writeTextData(data);
+        },
+        writeByteData: function(data) {
+            this.wsOut.writeByteData(data);
         }
     });
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     Q.Server.createWebSocket = function(opts) {
         var server = createServer();
         return server;

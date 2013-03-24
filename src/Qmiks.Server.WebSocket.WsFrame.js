@@ -107,54 +107,7 @@
     WsFrame.textToWsFrame = function(data) {
         return textToWsFrame(data);
     }
-    var unitValue = 1;
-
-    function textToWsFrame(data) {
-        var bufTxt = new Buffer(data, "utf8"),
-            maskingKey = [nextRandom(), nextRandom(), nextRandom(), nextRandom()],
-            bufSize = bufTxt.length + 2,
-            index = 0,
-            byte1 = 128 + (1),
-            byte2 = 0,
-            byte3;
-        if (bufTxt.length <= 125) {
-            byte2 += bufTxt.length;
-        } else if (bufTxt.length <= 65535) {
-            byte2 += 126;
-            byte3 = bufTxt.length;
-            bufSize += 2;
-        } else if (bufTxt.length > 65535) {
-            byte2 += 127;
-            byte3 = bufTxt.length;
-            bufSize += 8;
-        }
-
-        var buffer = new Buffer(bufSize);
-        buffer.writeUInt8(byte1, index++);
-        buffer.writeUInt8(byte2, index++);
-        if (bufTxt.length > 125 && bufTxt.length <= 65535) {
-            //buffer.writeUInt32BE(byte3, ++index);
-            buffer.writeUInt8(byte3 >>> 8, index++);
-            buffer.writeUInt8(byte3 & 255, index++);
-
-        } else if (bufTxt.length > 65535) {
-            buffer.writeUInt8(0, index++);
-            buffer.writeUInt8(0, index++);
-            buffer.writeUInt8(0, index++);
-            buffer.writeUInt8(0, index++);
-            buffer.writeUInt8(byte3 >>> 24, index++);
-            buffer.writeUInt8(byte3 >>> 16, index++);
-            buffer.writeUInt8(byte3 >>> 8, index++);
-            buffer.writeUInt8(byte3 & 255, index++);
-        }
-        for (var i in maskingKey) {
-            //buffer.writeUInt8(maskingKey[i], index++);
-        }
-        //antiMaskData(bufTxt, maskingKey);
-        bufTxt.copy(buffer, index, 0, bufTxt.length);
-        return buffer;
-    }
-
+    
     function nextRandom() {
         return parseInt((Math.random() * 256.0));
     }

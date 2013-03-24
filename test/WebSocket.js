@@ -12,18 +12,22 @@
 
     require("../src/Qmiks.Server.WebSocket");
     var Q = require("../src/Qmiks");
-    var app= Q.Server.createWebSocket();
+    var app = Q.Server.createWebSocket();
 
     app.listen(8124);
-    app.onTextData=function(data){
-        //console.log("data:"+data);
-        this.write("dafsd---");
-       // var ar=buffer.slice(0,buffer.length);
-        //console.log(ar);
-       // var m=new String(buffer);
-        //var buf=new Buffer(buffer.toString(),"utf8");
-        //console.log(buffer.toString("gbk"))
-    };
+    app.onAccept = function(inbound) {
+        inbound.onTextData = function(data) {
+            console.log("data:"+data);
+            this.write("dafsd---");
+
+            // var ar=buffer.slice(0,buffer.length);
+            //console.log(ar);
+            // var m=new String(buffer);
+            //var buf=new Buffer(buffer.toString(),"utf8");
+            //console.log(buffer.toString("gbk"))
+        };
+    }
+
     /*
     var Buffer = require('buffer').Buffer;
 
