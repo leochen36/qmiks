@@ -12,25 +12,22 @@
  */
 //server
 (function(Q) {
-    //加载模块
-    require("./Qmiks.Server");
+    //系统组件
     var fs = require("fs");
     var http = require("http");
     var os = require("os");
     var httpServer = http.Server;
-    var Log=require("./Qmiks.Log");
+
+
+    //框架组件
+    var Server = require("./Qmiks.Server");
+    var Log = require("./Qmiks.Log");
+    var Config = require("./Qmiks.Server.Http.Config");
+
     var log = new Log("Qmiks.Server.Http");
-
-
-
-    Q.Server = Q.Server;
-    Q.Server.Http = {};
-    //加载被依赖模块
-    require("./Qmiks.Server.Http.Config");
-
     var File = {
-        separator:os.platform().indexOf("win") > -1 ? "\\" : "/"
-        
+        separator: os.platform().indexOf("win") > -1 ? "\\" : "/"
+
     }
 
     //声明变量
@@ -116,8 +113,9 @@
             }
         });
     }
-    function _500(server, url, req, res,error){
-        try{
+
+    function _500(server, url, req, res, error) {
+        try {
             var page = server.page500();
             res.writeHead(500, {
                 'Content-Type': 'text/html;charset=' + server.charset()
@@ -139,11 +137,12 @@
                 res.write(error.stack);
             }
             res.end();
-        }catch(e){
+        } catch (e) {
 
         }
     }
-    function _404(server, url, req, res,mimeType){
+
+    function _404(server, url, req, res, mimeType) {
         var page = server.page404();
         if (page) {
             if (Q.isFun(page)) {
@@ -155,14 +154,14 @@
                     res.write(file);
                 } catch (e) {
                     res.writeHead(404, {
-                        'Content-Type': (mimeType||'text/html')+';charset='+server.charset()
+                        'Content-Type': (mimeType || 'text/html') + ';charset=' + server.charset()
                     });
                     res.write("找不到文件");
                 }
             }
         } else {
             res.writeHead(404, {
-                'Content-Type': 'text/html;charset='+server.charset()
+                'Content-Type': 'text/html;charset=' + server.charset()
             });
             res.write("找不到文件");
         }
@@ -172,24 +171,24 @@
 
     function staticFile(server, url, req, res) {
         if (url == "/" || url == "") {
-            url = separator+server.welcome();
+            url = separator + server.welcome();
         }
         var sIdx = url.lastIndexOf(".");
         if (sIdx < 0) return false;
         var suffix = url.substring(sIdx + 1, url.length),
             filePath = runDir + url,
             file;
-        var suf = Q.Server.Http.Config.mimeMapping[suffix];
+        var suf = Config.mimeMapping[suffix];
         if (suf == null) return false;
         try {
             file = fs.readFileSync(filePath, "utf8");
         } catch (e) {
-            _404(server, url, req, res,suf.mimeType);
+            _404(server, url, req, res, suf.mimeType);
             return true;
         }
         res.writeHead(200, {
             'Content-Type': suf.mimeType
-        });      
+        });
         res.write(file);
         res.end();
         return true;
@@ -222,8 +221,21 @@
         return str;
     }
 
-    function createServer(topCallback) {
-        var server = http.createServer(function(req, res) {
+    Q.Server.createHttp = function(opts) {
+        var server = new Q.Server.Http();
+        return server;
+    };
+    //顶级路油器,用于处理静态文件,对外部不开放
+    function topDealRouter(server, url, req, res) {
+        //最顶级过滤器,用户处理静态文件
+        return staticFile(server, url, req, res);
+    }
+    //创建Http类,并继承http.Server类
+    ///////////////////////////////////////////////////////////////////
+    Q.Server.Http = function() {
+        var me = this;
+        httpServer.apply(me, arguments);
+        me.on("request", function(req, res) {
             try {
                 var url = req.url,
                     method = req.method,
@@ -239,6 +251,7 @@
                     Log.log("connection:" + req.connection);*/
                 //取得所有的过滤方法
                 var execList = getAllFilterFun(path) || [];
+
                 function execFilter(req, res) {
                     for (var i = execCount; i < execList.length; i++) {
                         execCount++;
@@ -248,27 +261,27 @@
                     if (execCount == execList.length) {
                         execCount = 0;
                         //回调处理
-                        if (topCallback && topCallback(path, req, res)) {
+                        if (topDealRouter(me, path, req, res)) {
                             return;
                         }
                         //执行路油器
-                        if(!execRouter(path, method, req, res)){
+                        if (!execRouter(path, method, req, res)) {
                             //如果路油器没有匹配的,
-                            _404(server, url, req, res);
+                            _404(me, url, req, res);
                         }
                     }
                 }
                 execFilter(req, res);
 
             } catch (e) {
-                log.log("[ERROR][" + e.name + ":"+e.fileName+":"+e.stack+ "]");
-                _500(server, url, req, res,e);
+                log.log("[ERROR][" + e.name + ":" + e.fileName + ":" + e.stack + "]");
+                _500(me, url, req, res, e);
             }
-        })
-        return server;
-    }
+        });
+    };
+    Q.inherit(Q.Server.Http, httpServer);
 
-    Q.extend(httpServer.prototype, {
+    Q.extend(Q.Server.Http.prototype, {
         /** 添加过滤器(就是拦截器),同一规则,可以有多个过滤器,优先过滤器,再触发路油器
          * path:过滤路径(正则表达式)
          * fun:如果符合过滤规则,触发方法
@@ -338,7 +351,7 @@
                 return this._page404;
             }
         },
-        _welcome:"index.html",
+        _welcome: "index.html",
         _page404: "404.html",
         _page500: "500.html",
         _charset: "utf8",
@@ -359,15 +372,5 @@
         }
     });
 
-
-    Q.Server.createHttp = function(opts) {
-        var service = createServer(function(url, req, res) {
-            //最顶级过滤器,用户处理静态文件
-            return staticFile(service, url, req, res);
-        });
-        return service;
-    };
     module.exports = Q.Server.Http;
-
-
 })(require("./Qmiks"));

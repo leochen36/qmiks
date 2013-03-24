@@ -14,14 +14,15 @@ var Qmiks = new(function() {
         hasOwnProperty = Object.prototype.hasOwnProperty,
         Base = {};
     /* ----------------------- 声明基础性方法  start  */
-    String.prototype.endsWith=function(str){
-        if(this.length<str.length)return false;
-        return this.substring(this.length-str.length,this.length)===str;
+    String.prototype.endsWith = function(str) {
+        if (this.length < str.length) return false;
+        return this.substring(this.length - str.length, this.length) === str;
     }
-    String.prototype.startsWith=function(str){
-        if(this.length<str.length)return false;
-        return this.substring(0,str.length)===str;
+    String.prototype.startsWith = function(str) {
+        if (this.length < str.length) return false;
+        return this.substring(0, str.length) === str;
     }
+
     function trim(v) {
         return isNull(v) ? '' : R.call(v, rtrim, '')
     } //trim
@@ -216,18 +217,17 @@ var Qmiks = new(function() {
         注:子类有父类的属性及方法时,不会被父类替换
     */
     function inherit(subClass, superClass) {
-        var F=function(){};
-        var subPrototype=subClass.prototype;
-        F.prototype=superClass.prototype;
-        subClass.prototype=new F();
-        subClass.prototype.constructor=subClass;
-        subClass.super=superClass.prototype;
-        if(superClass.prototype.constructor==Object.prototype.constructor){
-            superClass.prototype.constructor=superClass;
+        var F = function() {};
+        var subPrototype = subClass.prototype;
+        F.prototype = superClass.prototype;
+        subClass.prototype = new F();
+        subClass.prototype.constructor = subClass;
+        subClass.super = superClass.prototype;
+        if (superClass.prototype.constructor == Object.prototype.constructor) {
+            superClass.prototype.constructor = superClass;
         }
-        for(var name in subPrototype){
-            if(subClass.prototype[name]==null)
-                subClass.prototype[name]=subPrototype[name];
+        for (var name in subPrototype) {
+            if (subClass.prototype[name] == null) subClass.prototype[name] = subPrototype[name];
         }
     }
     /* ----------------------- 声明基础性方法  end  */
@@ -314,14 +314,24 @@ var Qmiks = new(function() {
             delay: function(f, t) {
                 var p = slice.call(arguments, 2);
                 return setTimeout(function() {
-                    f.apply(f, p)
+                    try {
+                        f.apply(f, p)
+                    } catch (e) {
+                        console.log(e.stack);
+                    }
                 }, t)
             },
             cycle: function(f, t) {
                 var p = slice.call(arguments, 2);
-                return setInterval(function() {
-                    f.apply(f, p)
-                }, t)
+                var pid= setInterval(function() {
+                    try {
+                        f.apply(f, p)
+                    } catch (e) {
+                        console.log(e.stack);
+                        clearTimeout(pid);
+                    }
+                }, t);
+                return pid
             },
             toLower: toLower,
             toUpper: toUpper,

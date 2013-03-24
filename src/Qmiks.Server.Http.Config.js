@@ -8,9 +8,8 @@
 //server
 (function(Q) {
     //加载模块
-    require("./Qmiks.Server.Http");
-    Q.Server.Http=Q.Server.Http||{};
-    Q.Server.Http.Config = {
+    var Http=require("./Qmiks.Server.Http");
+    Http.Config = {
         mimeMapping: {//静态文件类型
             '123': {
                 mimeType: 'application/vnd.lotus-1-2-3'
@@ -3044,5 +3043,5 @@
             }
         }
     }
-    module.exports = Q;
+    module.exports = Http.Config;
 })(require("./Qmiks"));

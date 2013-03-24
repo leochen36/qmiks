@@ -75,23 +75,51 @@
             default:
         }
     }
-    //创建服务
+    Q.extend(net.Server.prototype, {
+        onAccept: function(inbound) {}
+    });
+
+    //消息接受类
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    function createServer() {
-        var server = new net.Server(function(socket) {
+    function Inbound(socket) {
+        var me = this;
+        me._socket = socket;
+        me.wsOut = new WsOut(socket);
+    }
+    Q.extend(Inbound.prototype, {
+        onOpen: function(socket) {},
+        onTextData: function(data) {},
+        onByteData: function(buffer) {},
+        write: function(data) {
+            this.wsOut.writeTextData(data);
+        },
+        writeTextData: function(data) {
+            this.wsOut.writeTextData(data);
+        },
+        writeByteData: function(data) {
+            this.wsOut.writeByteData(data);
+        }
+    });
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+    Q.Server.createWebSocket = function(opts) {
+        var server = new Q.Server.WebSocket();
+        return server;
+    };
+    //建立WebSocket类,继承net.Server
+    ///////////////////////////////////////////////////////////////////
+    Q.Server.WebSocket = function() {
+        var me=this;
+        net.Server.apply(me, arguments);
+        me.on("connection", function(socket) {
             var shakeHands = true; //握手
-
             //绑定消息接收体
             var inbound = new Inbound(socket);
-            server.onAccept(inbound);
-
+            me.onAccept(inbound);
             //接受消息
             socket.on("data", function(buffer) {
                 try {
-                    console.log(socket instanceof net.Socket)
                     socket.pause();
-                    server._socket = socket;
                     if (socket.readyState === "open") {
                         if (shakeHands) {
                             //握手
@@ -100,9 +128,6 @@
                             var array = [];
                             var resProtocol = getResponseProtocol(obj);
                             socket.write(resProtocol);
-                            server._write = function(data) {
-                                wirte(data, socket);
-                            }
                             //握手
                             inbound.onOpen(socket);
                             return
@@ -149,9 +174,7 @@
                             return;
                         }
                     } else if (socket.readyState === "readOnly") {
-
                         socket.write("read ")
-                        socket.resume();
                         return;
                     } else if (socket.readyState === "writeOnly") {
                         console.log("deal writeOnly v");
@@ -164,43 +187,9 @@
                     socket.resume();
                 }
             });
-        })
-        return server;
-    }
-    Q.extend(net.Server.prototype, {
-        onAccept: function(inbound) {}
-    });
-    //消息接受类
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    function Inbound(socket) {
-        var me = this;
-        me._socket = socket;
-        me.wsOut = new WsOut(socket);
-    }
-    Q.extend(Inbound.prototype, {
-        onOpen: function(socket) {},
-        onTextData: function(data) {},
-        onByteData: function(buffer) {},
-        write: function(data) {
-            this.wsOut.writeTextData(data);
-        },
-        writeTextData: function(data) {
-            this.wsOut.writeTextData(data);
-        },
-        writeByteData: function(data) {
-            this.wsOut.writeByteData(data);
-        }
-    });
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    Q.Server.createWebSocket = function(opts) {
-        var server = createServer();
-        return server;
+        });
     };
-    Q.Server.WebSocket = function() {};
     Q.inherit(Q.Server.WebSocket, net.Server);
-
-
 
     module.exports = Q.Server.WebSocket;
 })(require("./Qmiks"));
