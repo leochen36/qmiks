@@ -1,5 +1,5 @@
 Qmiks 是一个服务器端的javascript开发框架,目前依赖于 nodejs
-使用说明: 
+使用说明:
 Qmiks.js是基础框架文件
 	提供方法:
            	encode(str),
