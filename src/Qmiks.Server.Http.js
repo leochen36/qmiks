@@ -14,16 +14,18 @@
 (function(Q) {
     //系统组件
     var fs = require("fs");
-    var http = require("http");
+    var Http = require("http");
     var os = require("os");
-    var httpServer = http.Server;
+    var HttpServer = Http.Server;
+    var IncomingMessage = Http.IncomingMessage;
+    var querystring = require('querystring');
 
 
     //框架组件
     var Server = require("./Qmiks.Server");
     var Log = require("./Qmiks.Log");
     var Config = require("./Qmiks.Server.Http.Config");
-
+    require("./Qmiks.Server.Http._request");
     var log = new Log("Qmiks.Server.Http");
     var File = {
         separator: os.platform().indexOf("win") > -1 ? "\\" : "/"
@@ -234,23 +236,20 @@
     ///////////////////////////////////////////////////////////////////
     Q.Server.Http = function() {
         var me = this;
-        httpServer.apply(me, arguments);
+        HttpServer.apply(me, arguments);
         me.on("request", function(req, res) {
             try {
-                var url = req.url,
+                var url = req.getRequestURL(),
                     method = req.method,
-                    paramSepIdx = url.indexOf("?"),
-                    path = url,
                     execCount = 0;
-                if (paramSepIdx > -1) {
-                    path = url.substring(0, paramSepIdx);
-                }
+
+
                 /*    Log.log("path:" + path);
                      Log.log("method:" + req.method);
                     Log.log("httpVersion:" + req.httpVersion);
                     Log.log("connection:" + req.connection);*/
                 //取得所有的过滤方法
-                var execList = getAllFilterFun(path) || [];
+                var execList = getAllFilterFun(url) || [];
 
                 function execFilter(req, res) {
                     for (var i = execCount; i < execList.length; i++) {
@@ -261,11 +260,11 @@
                     if (execCount == execList.length) {
                         execCount = 0;
                         //回调处理
-                        if (topDealRouter(me, path, req, res)) {
+                        if (topDealRouter(me, url, req, res)) {
                             return;
                         }
                         //执行路油器
-                        if (!execRouter(path, method, req, res)) {
+                        if (!execRouter(url, method, req, res)) {
                             //如果路油器没有匹配的,
                             _404(me, url, req, res);
                         }
@@ -279,12 +278,13 @@
             }
         });
     };
-    Q.inherit(Q.Server.Http, httpServer);
+    Q.inherit(Q.Server.Http, HttpServer);
 
     Q.extend(Q.Server.Http.prototype, {
         /** 添加过滤器(就是拦截器),同一规则,可以有多个过滤器,优先过滤器,再触发路油器
          * path:过滤路径(正则表达式)
          * fun:如果符合过滤规则,触发方法
+            fun=function(req,res,next)
          */
         filter: function(regexp, fun, opts) {
             var reg = transform(regexp);

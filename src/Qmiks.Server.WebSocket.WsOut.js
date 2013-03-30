@@ -12,19 +12,19 @@
 
     var WebSocket = require("./Qmiks.Server.WebSocket");
 
-    function WsOut(stream) {
+    function WsOut(socket) {
         var me = this;
         me.text = true;
-        me.stream=stream;
+        me.socket=socket;
     }
     Q.extend(WsOut.prototype, {
         writeTextData: function(txtData) {
             this.text = true;
-            this.stream.write(this.getBuffer(txtData));
+            this.socket.write(this.getBuffer(txtData));
         },
         writeByteData: function(bytes) {
             this.text = false;
-            stream.write(this.getBuffer(bytes));
+            socket.write(this.getBuffer(bytes));
         },
         getBuffer: function(data) {
             var bufTxt,

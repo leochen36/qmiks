@@ -7,6 +7,7 @@
     
     var crypto = require("crypto");
     var fs = require("fs");
+    var os = require("os");
 
     var Q = require("../lib/QmiksLib");
     var app = Q.Server.createWebSocket();
@@ -37,5 +38,6 @@
         }
     }
 
-
+    console.log(Q.time())
+    console.log(os.uptime())
 })();

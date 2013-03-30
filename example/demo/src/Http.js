@@ -5,27 +5,30 @@
  */
 (function() {
     var fs = require("fs");
+    var M = require("http").IncomingMessage;
+
     var Q = require("../lib/QmiksLib");
- 
+
     console.log("load Qmik is OK");
     console.log("create http server");
- 
-    var server =  Q.Server.createHttp();
+
+    var server = Q.Server.createHttp();
     console.log("create http server success");
 
 
-    var os=require("os");
-    var path=require("path");  
+    var os = require("os");
+    var path = require("path");
 
-    server.filter("*", function(req, res, filterChain) {
+    server.filter("*", function(req, res, next) {
+        //res.writeHead("Set-Cookie", ["sid=ninja", "language=javascript"]);
+        //res.on("response")
         //console.log("enter filter");
-        res.writeHead(200, {
-            "Content-Type": "text/json"
-        });
-        //res.write("Hello World!");
+        req.headers.cookie = "";
+       // res.writeHeader("Set-Cookie", "tracker=direct;");
+       // res.writeHead("Set-Cookie", ["sid=tracker"]);
+        console.log("----------------------------");
 
-        //res.write("http request :" + Q.time());
-        filterChain(req, res);
+        next(req, res);
     });
 
     server.router("/abc", function(req, res) {
@@ -33,13 +36,16 @@
         res.writeHead(200, {
             "Content-Type": "text/text"
         });
-        res.write("Hello World! /abc ");
+        res.writeHeader(
+            "Set-Cookie",'meaaaaa=1eee11'
+        );
+ 
 
         res.write("http request :" + Q.time());
         res.end();
     });
     server.router("/abc/user", function(req, res) {
-       // console.log("enter router /abc/user");
+        // console.log("enter router /abc/user");
         res.writeHead(200, {
             "Content-Type": "text/text"
         });
@@ -77,9 +83,8 @@
     });
     server.get(/\S*[.](html|htm)/, function(req, res) {
         var url = req.url;
-        var paramSepIdx=url.indexOf("?");
-        if(paramSepIdx>-1)
-            url=url.substring(0,url.indexOf("?"));
+        var paramSepIdx = url.indexOf("?");
+        if (paramSepIdx > -1) url = url.substring(0, url.indexOf("?"));
 
         //console.log("url-html:" + url);
         var path;
@@ -98,20 +103,20 @@
     });
     server.get("/ws", function(req, res) {
 
-   
+
     });
-    var port=8100;
+    var port = 8100;
     server.listen(port);
 
     server.on("connection", function() {
         //console.log("connection--------------------------------------------------");
     })
     server.on("request", function() {
-      //  console.log("request--------------------------------------------------");
+        //  console.log("request--------------------------------------------------");
     })
     server.on("upgrade", function() {
         console.log("upgrade--------------------------------------------------");
     })
-    console.log("http port:"+port)
+    console.log("http port:" + port)
 
 })();

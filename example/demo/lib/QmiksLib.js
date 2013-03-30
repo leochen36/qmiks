@@ -7,6 +7,6 @@
 
     var Qmiks=require("../../../src/Qmiks");
     require("../../../src/Qmiks.Server");
-  
+
     module.exports = Qmiks;
 })();

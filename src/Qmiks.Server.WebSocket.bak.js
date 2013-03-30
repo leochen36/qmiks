@@ -15,34 +15,12 @@
     var WsFrame = require("./Qmiks.Server.WebSocket.WsFrame");
     var WsOut = require("./Qmiks.Server.WebSocket.WsOut");
     var Config = require("./Qmiks.Server.WebSocket.Config");
-    var Conversions = require("./Qmiks.Conversions");
     //其它变量
     var log = new Log("Qmiks.Server.WebSocket");
-    var Header = {
-        UPGRADE: "Upgrade",
-        CONNECTION: "Connection",
-        WEBSOCKET: "websocket",
-        SEC_WEBSOCKET_KEY: "Sec-WebSocket-Key",
-        SEC_WEBSOCKET_ORIGIN: "Origin",
-    };
 
-    function isSupportWebSocket(header) {
-        return Header.UPGRADE.equalsIgnoreCase(header[Header.CONNECTION].toString()) && Header.WEBSOCKET.equalsIgnoreCase(header[Header.UPGRADE].toString());
-    }
     //把第一次的,握手请求头转换为json对象,默认处理最新版本13的协议
-    // 去掉传入字符串的所有非数字   return string
 
-    function getNumeric(str) {
-        return str.replace(/\D/g, "");
-    }
-
-    // 返回传入字符串的空格   
-
-    function getSpace(str) {
-        return str.replace(/\S/g, "");
-    }
-
-    function toHeader(buffer) {
+    function toObject(buffer) {
         var chr,
         tstart = 0, //开始
             nb, //临时对象,每行数据
@@ -92,23 +70,12 @@
         return obj
     }
 
-    //改善握手协议
+    //取得websocket协议版本13握手返回信息
 
-    function sendHandShake(header, socket) {
-        var version = parseInt(header["Sec-WebSocket-Version"].toString());
+    function getHandProtocol(header) {
+        var version = header["Sec-WebSocket-Version"].toString();
         var array = [];
-        var isNVHandshake = false;
-        if (version >= 13 || (header[Header.SEC_WEBSOCKET_ORIGIN] && header[Header.SEC_WEBSOCKET_KEY])) {
-            isNVHandshake = true;
-        }
-        if (isNVHandshake) {
-            array.push("HTTP/1.1 101 Switching Protocols");
-        } else {
-            array.push("HTTP/1.1 101 Web Socket Protocol Handshake");
-        }
-        array.push("Upgrade: " + header["Upgrade"].toString());
-        array.push("Connection: " + header["Connection"].toString());
-        switch (version) {
+        switch (parseInt(version)) {
             case 13:
                 //版本13
                 //计算key的sha1加密值,并转换成base64
@@ -116,65 +83,44 @@
                 hash.update(header["Sec-WebSocket-Key"].toString() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
                 var ws_accept = hash.digest('base64');
 
+                array.push("HTTP/1.1 101 Switching Protocols");
+                array.push("Upgrade: " + header["Upgrade"].toString());
+                array.push("Connection: " + header["Connection"].toString());
+                //array.push("Sec-WebSocket-Protocol: chat");
                 array.push("Sec-WebSocket-Version: " + header["Sec-WebSocket-Version"].toString());
                 array.push("WebSocket-Origin: " + header["Origin"].toString());
                 array.push("Sec-WebSocket-Accept: " + ws_accept);
+                //array.push("\r\n\r\n");
                 array.push("\r\n");
-                socket.write(array.join("\r\n"));
-                break;
+                return array.join("\r\n");
             case 7:
                 //版本7
+                //计算key的sha1加密值,并转换成base64            
+                //var hash = crypto.createHash("sha1");
+                //hash.update(header["Sec-WebSocket-Key"].toString() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+                //var ws_accept = hash.digest('base64');
                 var agentBuf = header.protocolAgent,
                     host = header["Host"].toString(),
-                    location,
-                    index = 0,
-                    size = 0,
-                    varStr,
-                    buffer;
+                    location;
 
                 //取Sec-WebSocket-Location
                 var url = agentBuf.slice("GET ".length).toString();
                 url = url.substring(0, url.lastIndexOf(" "));
                 location = "ws://" + host + url;
+                console.log("Sec-WebSocket-Key1:")
+                console.log(header["Sec-WebSocket-Key1"])
 
+                array.push("HTTP/1.1 101 Web Socket Protocol Handshake");
+                array.push("Upgrade: " + header["Upgrade"].toString());
+                array.push("Connection: " + header["Connection"].toString());
+                array.push("Sec-WebSocket-Version: " + header["Sec-WebSocket-Version"].toString());
                 array.push("Sec-WebSocket-Origin: " + header["Origin"].toString());
                 array.push("Sec-WebSocket-Location: " + location);
 
-                varStr = array.join("\r\n");
-                size = varStr.length + 18;
-                buffer = new Buffer(size);
-                buffer.write(varStr, 0, size);
-                index = size;
-
-                var key1 = header["Sec-WebSocket-Key1"].toString();
-                var key2 = header["Sec-WebSocket-Key2"].toString();
-                var maskkey1 = parseInt(parseInt(getNumeric(key1)) / getSpace(key1).length);
-                var maskkey2 = parseInt(parseInt(getNumeric(key2)) / getSpace(key2).length);
-
-                var key3 = header["Sec-WebSocket-Key3"];
-
-                var mask1 = Conversions.intToByteArray(maskkey1);
-                var mask2 = Conversions.intToByteArray(maskkey2);
-                var mask = [];
-
-                mask = mask1.concat(mask2);
-                for (var i = 0; i < key3.length; i++) {
-                    mask.push(key3[i]);
-                }
-
-                //md5加密
-                var hash = crypto.createHash("md5");
-                hash.update(mask.join(""));
-                var encrypt = hash.digest('hex');
-    
-                for (var i = 0; i < encrypt.length; i++) {
-                    buffer.writeUInt8(encrypt[i].charCodeAt(0), index++);
-                    // mask.push();
-                }
-                buffer.writeUInt8(13, size++);
-                buffer.writeUInt8(10, size++);
-    
-                return buf;
+                //array.push("Sec-WebSocket-Accept: " + ws_accept);
+                //array.push("\r\n\r\n");
+                array.push("\r\n");
+                return array.join("\r\n");
         }
     }
 
@@ -219,7 +165,6 @@
             var inbound = new Inbound(socket);
             socket.setTimeout(Config.timeout);
             socket.setNoDelay(!Config.delay);
-            //接受请求事件
             me.onAccept(inbound);
             socket.on("timeout", function() {
                 socket.destroy();
@@ -234,14 +179,12 @@
                             //console.log(buffer.toString())
                             //握手
                             shakeHands = false;
-                            var header = toHeader(buffer);
-                            if (!isSupportWebSocket(header)) {
-                                log.warn("no support WebSocket!\r\n" + buffer.toString());
-                                socket.destroy();
-                                return;
-                            }
+                            var obj = toObject(buffer);
+                            var array = [];
+                            var resProtocol = getHandProtocol(obj);
+                            //console.log(resProtocol)
+                            socket.write(resProtocol);
                             //握手
-                            sendHandShake(header, socket);
                             inbound.onOpen(socket);
                             return
                         } else {
