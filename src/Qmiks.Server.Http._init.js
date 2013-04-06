@@ -126,40 +126,11 @@
 					}
 					return this.__headers[name];
 				},
-				addCookie : function(name, value, expires, path, domain) {
-					var me = this, cookie = [];
-					cookie.push(name);
-					cookie.push('=');
-					cookie.push(value);
-					cookie.push('; ');
-					expires = expires || timeout;
-					// cookie有效期时间
-					if (expires) {
-						expires = parseInt(expires);
-						var today = new Date();
-						var time = today.getTime() + expires * 1000;
-						var new_date = new Date(time);
-						var expiresDate = new_date.toGMTString(); // 转换成GMT
-						// 格式。
-						cookie.push('expires=');
-						cookie.push(expiresDate);
-						cookie.push('; ');
-					}
-					// 目录
-					if (path) {
-						cookie.push('path=');
-						cookie.push(path);
-						cookie.push('; ');
-					}
-					// 域名
-					if (domain) {
-						cookie.push('domain=');
-						cookie.push(domain);
-						cookie.push('; ');
-					}
-					// cookie.push(" ");
+				addCookie : function(name, value, expires, domain, path, secure) {
+					var me = this, cookie = new Cookie(name, value, expires,
+							domain, path, secure);
 					var cookies = this.getHeader(RES_HEADER_COOKIE) || [];
-					cookies.push(cookie.join(""));
+					cookies.push(cookie.toString());
 					me._addHeader(RES_HEADER_COOKIE, cookies);
 					me.writeHead(me.statusCode, {
 								"Set-Cookie" : cookies
