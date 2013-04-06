@@ -23,7 +23,7 @@
         CONNECTION: "Connection",
         WEBSOCKET: "websocket",
         SEC_WEBSOCKET_KEY: "Sec-WebSocket-Key",
-        SEC_WEBSOCKET_ORIGIN: "Origin",
+        SEC_WEBSOCKET_ORIGIN: "Origin"
     };
 
     function isSupportWebSocket(header) {

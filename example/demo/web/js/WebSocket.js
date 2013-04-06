@@ -1,5 +1,6 @@
 var ws = null;
 
+alert(document.cookie)
 function getServiceURL() {
     var pathName = window.location.pathname;
     var projectName = pathName.substring(0, pathName.substr(1).indexOf('/') + 1);
