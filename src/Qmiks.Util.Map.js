@@ -19,7 +19,10 @@
 					return this._map[key];
 				},
 				put : function(key, value) {
-					if (this._map[key] == null) {
+					if (Q.isNull(key)) {
+
+					}
+					if (!this.hasOwnProperty(key)) {
 						this.length++;
 					}
 					this._map[key] = value;
@@ -33,12 +36,12 @@
 					return this.length;
 				},
 				containsKey : function(key) {
-					return this._map[key] != null;
+					return this.get(key) != null;
 				},
 				// 迭代
 				iterator : function(callback) {
 					for (var key in this._map) {
-						callback(key, this._map[key]);
+						callback.call(callback, key, this.get(key));
 					}
 				}
 			});

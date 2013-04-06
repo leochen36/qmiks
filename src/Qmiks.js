@@ -259,6 +259,9 @@ var Qmiks = new (function() {
 				subClass.prototype[name] = subPrototype[name];
 		}
 	}
+	// qmiks加载类路径
+	function _require(package) {
+	}
 	/* ----------------------- 声明基础性方法 end */
 	{
 		var fn, Q = function(selector, context) {
@@ -314,6 +317,7 @@ var Qmiks = new (function() {
 						return !1
 					},
 					inherit : inherit, // 生成子类
+					require : _require,// 加载qmiks框架的类
 					each : each,
 					merge : merge,
 					// 合并数组或对象

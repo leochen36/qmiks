@@ -24,6 +24,7 @@
 	var Config = require("./Qmiks.Server.Http.Config");
 	var Util = require("./Qmiks.Util");
 	var Map = require("./Qmiks.Util.Map");
+	var Cache = require("./Qmiks.Util.Cache");
 	var Cookie = require("./Qmiks.Server.Http.Cookie");
 
 	var log = new Log("Qmiks.Server.Http");
@@ -34,7 +35,7 @@
 
 	var sessionIdName = "JSESSIONID";
 	var timeout = 7 * 24 * 60 * 60;
-	var session = new Map();
+	var session = new Cache();
 	// http请求类(Request)增加方法
 	Q.extend(IncomingMessage.prototype, {
 				// sessionIdName
@@ -44,7 +45,7 @@
 					if (sid == null) {
 						sid = Util.uuid();// 生成一个uuid当 sessionId
 						var obj = new Map();// 用户的会话信息
-						session.put(sid, obj);// 把用户会话信息,扔到队列里
+						session.set(sid, obj);// 把用户会话信息,扔到队列里
 						this.getResponse().addSession(sid);
 					}
 					return sid;
@@ -55,7 +56,7 @@
 					var obj = session.get(sid);
 					if (obj == null) {
 						obj = new Map();
-						session.push(sid, obj);
+						session.set(sid, obj);
 					}
 					return obj;
 				},

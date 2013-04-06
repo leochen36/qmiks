@@ -10,6 +10,7 @@
     //加载模块
     var Http=require("./Qmiks.Server.Http");
     Http.Config = {
+        timeout:30,//session超时时间,单位分钟
         mimeMapping: {//静态文件类型
             '123': {
                 mimeType: 'application/vnd.lotus-1-2-3'
