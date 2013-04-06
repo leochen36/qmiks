@@ -21,7 +21,7 @@
 	var Server = require("./Qmiks.Server");
 	var Log = require("./Qmiks.Log");
 	var Config = require("./Qmiks.Server.Http.Config");
-	require("./Qmiks.Server.Http._request");
+	require("./Qmiks.Server.Http._init");
 	var log = new Log("Qmiks.Server.Http");
 	var File = {
 		separator : os.platform().indexOf("win") > -1 ? "\\" : "/"
@@ -94,8 +94,7 @@
 		}
 		for (var i = routers.length - 1; i >= 0; i--) {
 			if (routers[i].key == key) {
-				console.log("the router[" + key
-						+ "] too many! remove  the extra");
+				log.info("the router[" + key + "] too many! remove  the extra");
 				routers.splice(i, 1);
 			}
 		}
@@ -248,9 +247,6 @@
 				};
 				req.getSessionId();
 				Object.seal(req);// 密码req对象
-				req.response = "aaaa;";
-				console.log(req.response);
-
 				var url = req.getRequestURL(), method = req.method, execCount = 0;
 				/*
 				 * Log.log("path:" + path); Log.log("method:" + req.method);
