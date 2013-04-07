@@ -2,6 +2,7 @@
  * @author:leochen
  * @email:cwq0312@163.com
  * @version:0.91.008
+ * websocket协议输出流
  */
 (function(Q) {
     //系统组件
