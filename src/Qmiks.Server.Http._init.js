@@ -33,7 +33,7 @@
 
 	}
 
-	var sessionIdName = "JSESSIONID";
+	var sessionIdName = "QSESSIONID";
 	var session = new Cache();
 	// http请求类(Request)增加方法
 	Q.extend(IncomingMessage.prototype, {

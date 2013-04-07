@@ -16,37 +16,45 @@
 	var HttpServer = Http.Server;
 	var IncomingMessage = Http.IncomingMessage;
 	var querystring = require('querystring');
+	var zlib = require("zlib");
+	var Buffer = require("buffer").Buffer;;
 
 	// 框架组件
+	require("./Qmiks.Server.Http._init");
 	var Server = require("./Qmiks.Server");
 	var Log = require("./Qmiks.Log");
 	var Config = require("./Qmiks.Server.Http.Config");
-	require("./Qmiks.Server.Http._init");
-	var log = new Log("Qmiks.Server.Http");
+	var Header = require("./Qmiks.Server.Http.Header");
+	var Util = require("./Qmiks.Util");
+	var Cache = Util.Cache;
+
+	// /////////////////////////////////////////////
+	// 运行变量
 	var File = {
 		separator : os.platform().indexOf("win") > -1 ? "\\" : "/"
 
 	}
+	var log = new Log("Qmiks.Server.Http");
+	var separator = File.separator; // 目录分隔符
+	var cacheStatic = new Cache();// 静态文件缓存
+	var cacheGzipStatic = new Cache();// 静态文件缓存
+	var filters = []; // 过滤器列表
+	var routers = []; // 路油器列表
+	var cwd = process.cwd(); // 执行路径
+	var argv = process.argv; // 启动参数
+	var mainJS = argv[1]; // 执行主js
+	var runDir = mainJS.substring(0, mainJS.lastIndexOf(separator)); // 工程运行目录
 
-	// 声明变量
-	var separator = File.separator, // 目录分隔符
-	filters = [], // 过滤器列表
-	routers = [], // 路油器列表
-	cwd = process.cwd(), // 执行路径
-	argv = process.argv, // 启动参数
-	mainJS = argv[1], // 执行主js
-	runDir = mainJS.substring(0, mainJS.lastIndexOf(separator)) // 工程运行目录
-	;
 	runDir = runDir.substring(0, runDir.lastIndexOf(separator)) + separator
 			+ "web";
-	/* 添加过滤器 */
 
+	/* 添加过滤器 */
 	function addFilter(key, fun, opts) {
 		var ft = getFilter(key), nfun = function(req, res, filterChain) {
 			fun.apply(fun, [req, res, filterChain]);
 		};
 		if (ft) {
-			ft.list.push(nfun)
+			ft.list.push(nfun);
 		} else {
 			filters.push({
 						key : key,
@@ -54,19 +62,17 @@
 						rule : opts.rule,
 						ruleType : opts.ruleType,
 						option : Q.extend({}, opts)
-					})
+					});
 		}
 	}
 	/* 取得过滤器 */
-
 	function getFilter(key) {
 		for (var i = 0; i < filters.length; i++) {
 			if (filters[i].key == key)
-				return filters[i]
+				return filters[i];
 		}
 	}
 	/* 取得所有符合此url验证规则的过滤器处理方法 */
-
 	function getAllFilterFun(url) {
 		var list = [], i, _ft;
 		for (i = 0; i < filters.length; i++) {
@@ -84,7 +90,6 @@
 		return list
 	}
 	/* 添加路油器 */
-
 	function addRouter(keyRegexp, fun, opts) {
 		var nopts = Q.extend({
 					method : "ALL"
@@ -112,6 +117,7 @@
 	function _500(server, url, req, res, error) {
 		try {
 			var page = server.page500();
+			var content;
 			res.writeHead(500, {
 						'Content-Type' : 'text/html;charset='
 								+ server.charset()
@@ -121,10 +127,10 @@
 					page(req, res, error);
 				} else {
 					var errorPage = runDir + page;
-
 					try {
-						file = fs.readFileSync(errorPage, "utf8");
-						res.write(file);
+						content = fs.readFileSync(errorPage, "utf8");
+						res.write(content);
+						delete errorPage;
 					} catch (e) {
 						res.write(error.stack);
 					}
@@ -133,11 +139,18 @@
 				res.write(error.stack);
 			}
 			res.end();
+			delete content;
+			delete page;
 		} catch (e) {
-
+			log.log("[ERROR][" + e.stack + "]");
 		}
 	}
-
+	function _304(server, url, req, res) {
+		res.writeHead(304, {
+			"Content-Type" : "text/text"
+				// ,"Set-Cookie":["kuyd=abc", "mena=cc", "mena1=ee"]
+			});
+	}
 	function _404(server, url, req, res, mimeType) {
 		var page = server.page404();
 		if (page) {
@@ -165,8 +178,10 @@
 		}
 		res.end();
 	}
+	function isSupportGzip(req) {
+		return req.getHeader("accept-encoding").indexOf("gzip") > -1;
+	}
 	// 静态文件处理
-
 	function staticFile(server, url, req, res) {
 		if (url == "/" || url == "") {
 			url = separator + server.welcome();
@@ -174,27 +189,71 @@
 		var sIdx = url.lastIndexOf(".");
 		if (sIdx < 0)
 			return false;
-		var suffix = url.substring(sIdx + 1, url.length), filePath = runDir
-				+ url, file;
+		var suffix = url.substring(sIdx + 1, url.length);
+		var filePath = runDir + url;
+		var content;
+		var stat;
+
 		var suf = Config.mimeMapping[suffix];
+		var isGzip = isSupportGzip(req);
 		if (suf == null)
 			return false;
 		try {
-			file = fs.readFileSync(filePath, "utf8");
+			// var key = Q.encode(filePath);
+			var key = filePath;
+			if (isGzip) {
+				// content = cacheGzipStatic.get(key);
+				content = cacheStatic.get(key);
+			} else {
+				content = cacheStatic.get(key);
+			}
+			// 缓存里没有此文件的缓存,从磁盘读取
+			if (Q.isNull(content)) {
+				content = fs.readFileSync(filePath, "utf8");
+				content = {
+					value : content
+				};
+				cacheStatic.set(key, content);
+				stat = fs.statSync(filePath);
+				content.lastModifed = stat.mtime;
+				cacheStatic.set(key, content);
+
+			}
 		} catch (e) {
+			log.error(e);
 			_404(server, url, req, res, suf.mimeType);
 			return true;
 		}
-		res.writeHead(200, {
-					'Content-Type' : suf.mimeType
-				});
-		res.write(file);
-		res.end();
+
+		// res.addHeader("Last-Modified",
+		// lastModified);
+		if (!Q.isNull(content)) {
+			var ifModifiedSince = req.getHeader(Header.req.IF_MODIFIED_SINCE);
+			if (ifModifiedSince) {
+				ifModifiedSince = new Date(ifModifiedSince);
+				if (ifModifiedSince.getTime() == content.lastModifed.getTime()) {
+					res.writeHead(304, {
+								'Content-Type' : suf.mimeType,
+								"Expires" : content.lastModifed.toUTCString(),
+								"Last-Modified" : content.lastModifed
+										.toUTCString()
+							});
+				}
+				return true;
+			}
+			res.writeHead(200, {
+						'Content-Type' : suf.mimeType,
+						"Expires" : (new Date(Q.time() + 30 * 24 * 60 * 60
+								* 1000)).toUTCString(),
+						"Last-Modified" : content.lastModifed.toUTCString()
+					});
+			res.write(content.value);
+		}
+		delete sIdx, suffix;
 		return true;
 	}
 
 	/* 执行相关路油器,根据url找出相关路油器并执行 */
-
 	function execRouter(url, method, req, res) {
 		for (var k = 0; k < routers.length; k++) {
 			if (routers[k].option.method == "ALL"
@@ -212,7 +271,6 @@
 		return false;
 	}
 	/** 把 /和* 转换成正则对象,其它的不转 */
-
 	function transform(str) {
 		if (Q.isString(str)) {
 			if (str == "/" || str == "*") {
@@ -227,7 +285,6 @@
 		return server;
 	};
 	// 顶级路油器,用于处理静态文件,对外部不开放
-
 	function topDealRouter(server, url, req, res) {
 		// 最顶级过滤器,用户处理静态文件
 		return staticFile(server, url, req, res);
@@ -246,7 +303,7 @@
 					return res
 				};
 				req.getSessionId();
-				Object.seal(req);// 密码req对象
+				Object.seal(req);// 密封req对象
 				var url = req.getRequestURL(), method = req.method, execCount = 0;
 				/*
 				 * Log.log("path:" + path); Log.log("method:" + req.method);
@@ -266,6 +323,7 @@
 						execCount = 0;
 						// 回调处理
 						if (topDealRouter(me, url, req, res)) {
+							res.end();
 							return;
 						}
 						// 执行路油器
@@ -284,7 +342,6 @@
 		});
 	};
 	Q.inherit(Q.Server.Http, HttpServer);
-
 	Q.extend(Q.Server.Http.prototype, {
 		/**
 		 * 添加过滤器(就是拦截器),同一规则,可以有多个过滤器,优先过滤器,再触发路油器 path:过滤路径(正则表达式)
