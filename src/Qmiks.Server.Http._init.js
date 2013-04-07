@@ -3,7 +3,7 @@
  * @email:cwq0312@163.com
  * @version:0.91.008
  * 
- * http服务: 名称: 过滤器 路油器
+ * http 请求,响应初始化
  * 
  * 
  */
@@ -34,18 +34,17 @@
 	}
 
 	var sessionIdName = "JSESSIONID";
-	var timeout = 7 * 24 * 60 * 60;
 	var session = new Cache();
 	// http请求类(Request)增加方法
 	Q.extend(IncomingMessage.prototype, {
 				// sessionIdName
 				getSessionId : function() {
-					var sid = this.cookies()[sessionIdName];
+					var sid = this.getCookies()[sessionIdName];
 					// 如果sessionId为空,(用户初次登录,或清理过cookie)
 					if (sid == null) {
 						sid = Util.uuid();// 生成一个uuid当 sessionId
 						var obj = new Map();// 用户的会话信息
-						session.set(sid, obj);// 把用户会话信息,扔到队列里
+						session.set(sid, obj, Config.session.timeout);// 把用户会话信息,扔到队列里
 						this.getResponse().addSession(sid);
 					}
 					return sid;
@@ -56,18 +55,18 @@
 					var obj = session.get(sid);
 					if (obj == null) {
 						obj = new Map();
-						session.set(sid, obj);
+						session.set(sid, obj, Config.session.timeout);
 					}
 					return obj;
 				},
 				// 所有cookies
-				cookies : function() {
+				getCookies : function() {
 					this._cookies = this._cookies
 							|| querystring.parse(this.headers.cookie) || {};
 					return this._cookies;
 				},
 				getCookie : function(name) {
-					return this.cookies()[name];
+					return this.getCookies()[name];
 				},
 				// 取参数
 				getParameter : function(name) {
