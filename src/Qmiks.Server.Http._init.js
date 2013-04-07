@@ -92,6 +92,9 @@
 					}
 					return null;
 				},
+				getHeader : function(name) {
+					return this.headers[name];
+				},
 				// 取请求路径
 				getRequestURL : function() {
 					if (this._url)
