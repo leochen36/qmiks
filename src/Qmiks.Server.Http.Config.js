@@ -15,6 +15,11 @@
 			// session超时时间,单位分钟;
 			timeout : 30
 		},
+		// cookie保存时间
+		cookie : {
+			// cookie保存时间,单位分钟
+			timeout : 7 * 24 * 60
+		},
 		// 静态文件类型
 		mimeMapping : {
 			'123' : {
