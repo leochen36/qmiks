@@ -2,6 +2,7 @@
  * @author:leochen
  * @email:cwq0312@163.com
  * @version:0.91.008
+ * websocket 数据侦类
  */
 (function(Q) {
     //系统组件
