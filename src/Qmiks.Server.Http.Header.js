@@ -17,7 +17,6 @@
 	var Http = require("./Qmiks.Server.Http");
 	var Log = require("./Qmiks.Log");
 	var Config = require("./Qmiks.Server.Http.Config");
-
 	var Header = {
 		req : {
 			IF_MODIFIED_SINCE : "if-modified-since" // 最后一次修改时间

@@ -120,7 +120,7 @@
 			var content;
 			res.writeHead(500, {
 						'Content-Type' : 'text/html;charset='
-								+ server.charset()
+								+ server.getCharset()
 					});
 			if (page) {
 				if (Q.isFun(page)) {
@@ -145,12 +145,6 @@
 			log.log("[ERROR][" + e.stack + "]");
 		}
 	}
-	function _304(server, url, req, res) {
-		res.writeHead(304, {
-			"Content-Type" : "text/text"
-				// ,"Set-Cookie":["kuyd=abc", "mena=cc", "mena1=ee"]
-			});
-	}
 	function _404(server, url, req, res, mimeType) {
 		var page = server.page404();
 		if (page) {
@@ -164,7 +158,7 @@
 				} catch (e) {
 					res.writeHead(404, {
 								'Content-Type' : (mimeType || 'text/html')
-										+ ';charset=' + server.charset()
+										+ ';charset=' + server.getCharset()
 							});
 					res.write("找不到文件");
 				}
@@ -172,7 +166,7 @@
 		} else {
 			res.writeHead(404, {
 						'Content-Type' : 'text/html;charset='
-								+ server.charset()
+								+ server.getCharset()
 					});
 			res.write("找不到文件");
 		}
@@ -181,10 +175,40 @@
 	function isSupportGzip(req) {
 		return req.getHeader("accept-encoding").indexOf("gzip") > -1;
 	}
+	// 缓存请求文件,304返回状态码
+	function _304(req, res, mimeType, content) {
+		var isCache = false;
+		var header = {};
+		// 是否有etag标识,没有就返回false,不做取浏览器缓存处理
+		var etag = req.getHeader("If-None-Match".toLowerCase());
+		if (etag == content.eTag) {
+			isCache = true;
+		} else {
+			header["Last-Modified"] = content.lastModifed.toUTCString();
+		}
+		// 看是否有IF_MODIFIED_SINCE,没有主水做验证,有就做验证
+		var ifModifiedSince = req.getHeader(Header.req.IF_MODIFIED_SINCE);
+		if (ifModifiedSince) {
+			ifModifiedSince = new Date(ifModifiedSince);
+			if (ifModifiedSince.getTime() == content.lastModifed.getTime()) {
+				isCache = true;
+			} else {
+				isCache = false;
+			}
+		}
+		if (isCache) {
+			header["Content-Type"] = mimeType;
+			header["ETag"] = etag;
+			res.writeHead(304, header);
+			res.end();
+			return true;
+		}
+		return false;
+	}
 	// 静态文件处理
 	function staticFile(server, url, req, res) {
 		if (url == "/" || url == "") {
-			url = separator + server.welcome();
+			url = separator + server.getWelcome();
 		}
 		var sIdx = url.lastIndexOf(".");
 		if (sIdx < 0)
@@ -192,7 +216,6 @@
 		var suffix = url.substring(sIdx + 1, url.length);
 		var filePath = runDir + url;
 		var content;
-		var stat;
 
 		var suf = Config.mimeMapping[suffix];
 		var isGzip = isSupportGzip(req);
@@ -209,47 +232,69 @@
 			}
 			// 缓存里没有此文件的缓存,从磁盘读取
 			if (Q.isNull(content)) {
-				content = fs.readFileSync(filePath, "utf8");
-				content = {
-					value : content
-				};
-				cacheStatic.set(key, content);
-				stat = fs.statSync(filePath);
-				content.lastModifed = stat.mtime;
-				cacheStatic.set(key, content);
-
+				// 异步读取
+				content = {};
+				fs.stat(filePath, function(error, stat) {
+					if (Q.isNull(error)) {
+						content.lastModifed = stat.mtime;
+						content.eTag = (stat.mtime.getTime() / 1000) >>> 8;
+						if (_304(req, res, suf.mimeType, content)) {
+							return true;
+						}
+						fs.readFile(filePath, function(err, data) {
+									if (Q.isNull(err)) {
+										content.value = data;
+										cacheStatic.set(key, content);
+										res.writeHead(200, {
+													'Content-Type' : suf.mimeType,
+													"ETag" : content.eTag,
+													"Expires" : (new Date(Q
+															.time()
+															+ 30
+															* 24
+															* 60
+															* 60
+															* 1000))
+															.toUTCString()
+												});
+										res.write(content.value);
+										res.end();
+									} else {
+										_404(server, url, req, res,
+												suf.mimeType);
+									}
+								});
+					} else {
+						_404(server, url, req, res, suf.mimeType);
+					}
+				});
+				// 下面是同步读取
+				// content = fs.readFileSync(filePath, "utf8");
+				// content = {
+				// value : content
+				// };
+				// cacheStatic.set(key, content);
+				// stat = fs.statSync(filePath);
+				// content.lastModifed = stat.mtime;
+				// cacheStatic.set(key, content);
+			} else {
+				if (_304(req, res, suf.mimeType, content)) {
+					return true;
+				}
+				res.writeHead(200, {
+							'Content-Type' : suf.mimeType,
+							"ETag" : content.eTag,
+							"Expires" : (new Date(Q.time() + 30 * 24 * 60 * 60
+									* 1000)).toUTCString()
+						});
+				res.write(content.value);
+				res.end();
+				delete sIdx, suffix;
 			}
 		} catch (e) {
 			log.error(e);
 			_404(server, url, req, res, suf.mimeType);
-			return true;
 		}
-
-		// res.addHeader("Last-Modified",
-		// lastModified);
-		if (!Q.isNull(content)) {
-			var ifModifiedSince = req.getHeader(Header.req.IF_MODIFIED_SINCE);
-			if (ifModifiedSince) {
-				ifModifiedSince = new Date(ifModifiedSince);
-				if (ifModifiedSince.getTime() == content.lastModifed.getTime()) {
-					res.writeHead(304, {
-								'Content-Type' : suf.mimeType,
-								"Expires" : content.lastModifed.toUTCString(),
-								"Last-Modified" : content.lastModifed
-										.toUTCString()
-							});
-				}
-				return true;
-			}
-			res.writeHead(200, {
-						'Content-Type' : suf.mimeType,
-						"Expires" : (new Date(Q.time() + 30 * 24 * 60 * 60
-								* 1000)).toUTCString(),
-						"Last-Modified" : content.lastModifed.toUTCString()
-					});
-			res.write(content.value);
-		}
-		delete sIdx, suffix;
 		return true;
 	}
 
@@ -313,17 +358,16 @@
 				// 取得所有的过滤方法
 				var execList = getAllFilterFun(url) || [];
 
-				function execFilter(req, res) {
+				function nextFilter(req, res) {
 					for (var i = execCount; i < execList.length; i++) {
 						execCount++;
-						execList[i](req, res, execFilter);
+						execList[i](req, res, nextFilter);
 						break
 					}
 					if (execCount == execList.length) {
 						execCount = 0;
-						// 回调处理
+						// 执行内部最优先组的静态文件路油器,如果返回true,就不执行应用层配置的路油器.
 						if (topDealRouter(me, url, req, res)) {
-							res.end();
 							return;
 						}
 						// 执行路油器
@@ -333,8 +377,7 @@
 						}
 					}
 				}
-				execFilter(req, res);
-
+				nextFilter(req, res);
 			} catch (e) {
 				log.log("[ERROR][" + e.stack + "]");
 				_500(me, url, req, res, e);
@@ -416,8 +459,7 @@
 		_page404 : "404.html",
 		_page500 : "500.html",
 		_charset : "utf8",
-		// 欢迎页面
-		welcome : function(file) {
+		getWelcome : function(file) {
 			if (file) {
 				this._welcome = file;
 			} else {
@@ -425,11 +467,11 @@
 			}
 		},
 		// 设置或取得编码,默认UTF8
-		charset : function(charset) {
-			if (charset) {
-				this._charset = charset || "utf8";
-			}
-			return this._charset;
+		getCharset : function() {
+			return this._charset || "utf8";
+		},
+		setCharset : function(charset) {
+			this._charset = charset || "utf8";
 		}
 	});
 
