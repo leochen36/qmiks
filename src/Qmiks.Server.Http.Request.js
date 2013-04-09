@@ -14,88 +14,84 @@
 	var Log = require("./Qmiks.Log");
 	var Config = require("./Qmiks.Server.Http.Config");
 	var Cookie = require("./Qmiks.Server.Http.Cookie");
+	var Util = require("./Qmiks.Util");
+	var Map = require("./Qmiks.Util.Map");
+	var Cache = require("./Qmiks.Util.Cache");
+	var Cookie = require("./Qmiks.Server.Http.Cookie");
 	// 运行参数
 	var log = new Log("Qmiks.Server.Http");
 	var timeout = Config.cookie.timeout;// cookie保存时间
-	var RES_HEADER_COOKIE = "Set-Cookie"; // cookie
 	var RES_HEADER_CONTENT_TYPE = "Content-Type"; // contentType
-	function Request(nodeJSResponse) {
+	var sessionIdName = "QSESSIONID";
+	var session = new Cache();
+	// Request对象
+	function Request(nodeJSRequest) {
 		var me = this;
-		me._response = nodeJSResponse;
-		me._isWriteHead = false;
+		me._request = nodeJSRequest;
+		me._url = null;
 	}
 	Q.extend(Request.prototype, {
-		// 增加响应头
-		addHeader : function(name, value) {
-			value = Q.isString(value) ? value : (value + "");
-			this._addHeader(name, value);
-			// this._response.setHeader("\r\n" + name + ":", value);
-			return this;
+		// sessionIdName
+		getSessionId : function() {
+			var sid = this.getCookies()[sessionIdName];
+			// 如果sessionId为空,(用户初次登录,或清理过cookie)
+			if (sid == null) {
+				sid = Util.uuid();// 生成一个uuid当 sessionId
+				// name, value, expires, domain, path, secure
+				this.getResponse().addCookie(sessionIdName, sid, 7 * 24 * 3600, null, "/");
+			}
+			return sid;
 		},
-		// 把增加变量写到缓存里去,外部不建议调用
-		_addHeader : function(name, value) {
-			if (this._isWriteHead) {
-				log.error("The body has been written, can not add add header!");
+		// 取session
+		getSession : function() {
+			var sid = this.getSessionId();
+			var obj = session.get(sid);
+			if (obj == null) {
+				obj = new Map();
+				session.set(sid, obj, Config.session.timeout * 60);// 把用户会话信息,扔到队列里
 			}
-			if (this.__headers == null) {
-				this.__headers = {};
-			}
-			this.__headers[name] = value;
-			return this;
+			return obj;
+		},
+		// 所有cookies
+		getCookies : function() {
+			this._cookies = this._cookies || querystring.parse(this._request.headers.cookie) || {};
+			return this._cookies;
+		},
+		getCookie : function(name) {
+			return this.getCookies()[name];
+		},
+		// 取参数
+		getParameter : function(name) {
+			this._params = this._params || {};
+			var p = this._params[name];
+			if (p) { return Q.isArray(p) ? p[0] : p; }
+			var surl = Q.decode(this._request.url).trim();
+			var idx = surl.indexOf("?");
+			if (idx < 0) { return null; }
+			var _params = surl.substring(idx + 1, surl.length);
+			_params = _params.replace(/&\s+/g, "&").replace(/\s+=/g, "=");
+			if (_params == "") return null;
+			this._params = querystring.parse(_params);
+			p = this._params[name];
+			if (p) { return Q.isArray(p) ? p[0] : p; }
+			return null;
 		},
 		getHeader : function(name) {
-			if (this.__headers == null) {
-				this.__headers = {};
-			}
-			return this.__headers[name];
+			return this._request.headers[name];
 		},
-		addCookie : function(name, value, expires, domain, path, secure) {
-			var me = this;
-			var cookie = new Cookie(name, value, expires, domain, path, secure);
-			var cookies = this.getHeader(RES_HEADER_COOKIE) || [];
-			cookies.push(cookie.toString());
-			me._addHeader(RES_HEADER_COOKIE, cookies);
-			// me._response.writeHead(me.statusCode, {
-			// "Set-Cookie" : cookies
-			// });
-			me._response.setHeader("Set-Cookie", cookies);
-			return this;
+		getHeaders : function() {
+			return this._request.headers;
 		},
-		rmCookie : function(name) {
-			this.addCookie(name, "", -1);
-			return this;
+		// 取请求路径
+		getRequestURL : function() {
+			var url = Q.decode(this._request.url);
+			if (!Q.isNull(this._url)) return this._url;
+			var idx = url.indexOf("?");
+			this._url = idx >= 0 ? url.substring(0, idx).trim() : url.trim();
+			return this._url;
 		},
-		getContentType : function() {
-			return this.getHeader("Content-Type");
-		},
-		getStatus : function() {
-			return this._response.statusCode;
-		},
-		setStatus : function(status) {
-			// this._response.writeHead(status);
-			this._response.statusCode = status;
-			return this;
-		},
-		// 内部方法,写头部数据流给客户端
-		_writeHead : function() {
-			var me = this;
-			// 如果已写过,就不写
-			if (me._isWriteHead) { return; }
-			me._response.writeHead(me.getStatus(), me.__headers || {});
-			me._isWriteHead = true;
-		},
-		write : function(buffer) {
-			this._writeHead();
-			this._response.write(buffer);
-			return this;
-		},
-		end : function(buffer) {
-			this._writeHead();
-			this._response.end(buffer);
-			return this;
-		},
-		pipe : function(socket) {
-			this._response.pipe(socket);
+		getMethod : function() {
+			return this._request.method
 		}
 	});
 	Http.Request = Request;

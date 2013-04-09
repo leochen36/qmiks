@@ -14,7 +14,6 @@
 	var querystring = require('querystring');
 	var zlib = require("zlib");
 	var Buffer = require("buffer").Buffer;
-	;
 	// 框架组件
 	require("./Qmiks.Server.Http._init");
 	var Server = require("./Qmiks.Server");
@@ -23,6 +22,7 @@
 	var Cookie = require("./Qmiks.Server.Http.Cookie");
 	var Header = require("./Qmiks.Server.Http.Header");
 	var Response = require("./Qmiks.Server.Http.Response");
+	var Request = require("./Qmiks.Server.Http.Request");
 	var Util = require("./Qmiks.Util");
 	var Cache = Util.Cache;
 	// /////////////////////////////////////////////
@@ -261,7 +261,7 @@
 				// cacheStatic.set(key, content);
 			} else {
 				var etag = req.getHeader("If-None-Match".toLowerCase());
-				//如果浏览器不支持etag模式,就增加使用Last-Modified,实现缓存
+				// 如果浏览器不支持etag模式,就增加使用Last-Modified,实现缓存
 				if (Q.isNull(etag)) {
 					res.addHeader("Last-Modified", content.lastModifed.toUTCString());
 				}
@@ -317,9 +317,10 @@
 	Q.Server.Http = function() {
 		var me = this;
 		HttpServer.apply(me, arguments);
-		me.on("request", function(req, _res) {
+		me.on("request", function(_req, _res) {
 			try {
 				var res = new Response(_res);
+				var req = new Request(_req);
 				res.getRequest = function() {
 					return req
 				};
@@ -329,7 +330,9 @@
 				req.getSessionId();
 				Object.seal(req);// 密封req对象
 				res.setStatus(200);
-				var url = req.getRequestURL(), method = req.method, execCount = 0;
+				var url = req.getRequestURL();
+				var method = req.getMethod();
+				var execCount = 0;
 				/*
 				 * Log.log("path:" + path); Log.log("method:" + req.method);
 				 * Log.log("httpVersion:" + req.httpVersion); Log.log("connection:" +

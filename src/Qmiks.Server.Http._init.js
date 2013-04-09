@@ -1,7 +1,7 @@
 /**
  * @author:leochen
  * @email:cwq0312@163.com
- * @version:0.91.008 http 请求,响应初始化
+ * @version:0.91.008 http 请求,响应初始化.
  */
 // server
 (function(Q) {

@@ -23,6 +23,7 @@
 		var me = this;
 		me._response = nodeJSResponse;
 		me._isWriteHead = false;
+		me.__headers = {};
 	}
 	Q.extend(Response.prototype, {
 		// 增加响应头
@@ -35,12 +36,8 @@
 		// 批量增加头信息,参数 headers的格式 是{name:value,name1:value1};
 		addHeaders : function(headers) {
 			if (Q.isNull(headers)) return this;
-			if (this.__headers == null) {
-				this.__headers = headers;
-			} else {
-				for ( var key in headers) {
-					this._addHeader(key, headers[key]);
-				}
+			for ( var key in headers) {
+				this._addHeader(key, headers[key]);
 			}
 			return this;
 		},
@@ -48,9 +45,6 @@
 		_addHeader : function(name, value) {
 			if (this._isWriteHead) {
 				log.error("The body has been written, can not add add header!");
-			}
-			if (this.__headers == null) {
-				this.__headers = {};
 			}
 			this.__headers[name] = value;
 			return this;

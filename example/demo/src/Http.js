@@ -24,8 +24,8 @@
 		log.log("=======================================" + Q.time())
 		var url = req.getRequestURL();
 		log.log("url:" + url);
-		for ( var key in req.headers) {
-			log.log(key + "--:" + req.headers[key])
+		for ( var key in req.getHeaders()) {
+			//log.log(key + "--:" + req.getHeaders()[key])
 		}
 		log.log();
 		next(req, res);
