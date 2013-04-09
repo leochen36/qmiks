@@ -1,9 +1,7 @@
 /**
  * @author:leochen
  * @email:cwq0312@163.com
- * @version:0.91.008
- * 
- * http服务 配置
+ * @version:0.91.008 http服务 配置
  */
 // server
 (function(Q) {
