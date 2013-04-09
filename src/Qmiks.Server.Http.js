@@ -1,11 +1,7 @@
 /**
  * @author:leochen
  * @email:cwq0312@163.com
- * @version:0.91.008
- * 
- * http服务: 名称: 过滤器 路油器
- * 
- * 
+ * @version:0.91.008 http服务: 名称: 过滤器 路油器
  */
 // server
 (function(Q) {
@@ -17,22 +13,22 @@
 	var IncomingMessage = Http.IncomingMessage;
 	var querystring = require('querystring');
 	var zlib = require("zlib");
-	var Buffer = require("buffer").Buffer;;
-
+	var Buffer = require("buffer").Buffer;
+	;
 	// 框架组件
 	require("./Qmiks.Server.Http._init");
 	var Server = require("./Qmiks.Server");
 	var Log = require("./Qmiks.Log");
 	var Config = require("./Qmiks.Server.Http.Config");
+	var Cookie = require("./Qmiks.Server.Http.Cookie");
 	var Header = require("./Qmiks.Server.Http.Header");
+	var Response = require("./Qmiks.Server.Http.Response");
 	var Util = require("./Qmiks.Util");
 	var Cache = Util.Cache;
-
 	// /////////////////////////////////////////////
 	// 运行变量
 	var File = {
 		separator : os.platform().indexOf("win") > -1 ? "\\" : "/"
-
 	}
 	var log = new Log("Qmiks.Server.Http");
 	var separator = File.separator; // 目录分隔符
@@ -44,32 +40,32 @@
 	var argv = process.argv; // 启动参数
 	var mainJS = argv[1]; // 执行主js
 	var runDir = mainJS.substring(0, mainJS.lastIndexOf(separator)); // 工程运行目录
-
-	runDir = runDir.substring(0, runDir.lastIndexOf(separator)) + separator
-			+ "web";
-
+	runDir = runDir.substring(0, runDir.lastIndexOf(separator)) + separator + "web";
 	/* 添加过滤器 */
 	function addFilter(key, fun, opts) {
 		var ft = getFilter(key), nfun = function(req, res, filterChain) {
-			fun.apply(fun, [req, res, filterChain]);
+			fun.apply(fun, [
+				req, res, filterChain
+			]);
 		};
 		if (ft) {
 			ft.list.push(nfun);
 		} else {
-			filters.push({
-						key : key,
-						list : [nfun],
-						rule : opts.rule,
-						ruleType : opts.ruleType,
-						option : Q.extend({}, opts)
-					});
+			filters.push( {
+				key : key,
+				list : [
+					nfun
+				],
+				rule : opts.rule,
+				ruleType : opts.ruleType,
+				option : Q.extend( {}, opts)
+			});
 		}
 	}
 	/* 取得过滤器 */
 	function getFilter(key) {
-		for (var i = 0; i < filters.length; i++) {
-			if (filters[i].key == key)
-				return filters[i];
+		for ( var i = 0; i < filters.length; i++) {
+			if (filters[i].key == key) return filters[i];
 		}
 	}
 	/* 取得所有符合此url验证规则的过滤器处理方法 */
@@ -78,11 +74,11 @@
 		for (i = 0; i < filters.length; i++) {
 			_ft = filters[i];
 			if (_ft.ruleType == "regexp" && _ft.rule.test(url)) {
-				for (var k in _ft.list) {
+				for ( var k in _ft.list) {
 					list.push(_ft.list[k])
 				}
 			} else if (_ft.rule == url) {
-				for (var k in _ft.list) {
+				for ( var k in _ft.list) {
 					list.push(_ft.list[k])
 				}
 			}
@@ -91,37 +87,38 @@
 	}
 	/* 添加路油器 */
 	function addRouter(keyRegexp, fun, opts) {
-		var nopts = Q.extend({
-					method : "ALL"
-				}, opts), key = keyRegexp.toString();
+		var nopts = Q.extend( {
+			method : "ALL"
+		}, opts), key = keyRegexp.toString();
 		if (nopts.ruleType == "string") {
 			key = nopts.rule;
 		}
-		for (var i = routers.length - 1; i >= 0; i--) {
+		for ( var i = routers.length - 1; i >= 0; i--) {
 			if (routers[i].key == key) {
 				log.info("the router[" + key + "] too many! remove  the extra");
 				routers.splice(i, 1);
 			}
 		}
-		routers.push({
-					key : key,
-					rule : opts.rule,
-					ruleType : opts.ruleType,
-					option : nopts,
-					router : function(req, res) {
-						fun.apply(fun, [req, res]);
-					}
-				});
+		routers.push( {
+			key : key,
+			rule : opts.rule,
+			ruleType : opts.ruleType,
+			option : nopts,
+			router : function(req, res) {
+				fun.apply(fun, [
+					req, res
+				]);
+			}
+		});
 	}
-
 	function _500(server, url, req, res, error) {
 		try {
 			var page = server.page500();
 			var content;
-			res.writeHead(500, {
-						'Content-Type' : 'text/html;charset='
-								+ server.getCharset()
-					});
+			res.setStatus(500);
+			res.addHeaders( {
+				'Content-Type' : 'text/html;charset=' + server.getCharset()
+			});
 			if (page) {
 				if (Q.isFun(page)) {
 					page(req, res, error);
@@ -156,18 +153,18 @@
 					file = fs.readFileSync(errorPage, "utf8");
 					res.write(file);
 				} catch (e) {
-					res.writeHead(404, {
-								'Content-Type' : (mimeType || 'text/html')
-										+ ';charset=' + server.getCharset()
-							});
+					res.setStatus(404);
+					res.addHeaders( {
+						'Content-Type' : (mimeType || 'text/html') + ';charset=' + server.getCharset()
+					})
 					res.write("找不到文件");
 				}
 			}
 		} else {
-			res.writeHead(404, {
-						'Content-Type' : 'text/html;charset='
-								+ server.getCharset()
-					});
+			res.setStatus(404);
+			res.addHeaders( {
+				'Content-Type' : 'text/html;charset=' + server.getCharset()
+			});
 			res.write("找不到文件");
 		}
 		res.end();
@@ -178,13 +175,10 @@
 	// 缓存请求文件,304返回状态码
 	function _304(req, res, mimeType, content) {
 		var isCache = false;
-		var header = {};
 		// 是否有etag标识,没有就返回false,不做取浏览器缓存处理
 		var etag = req.getHeader("If-None-Match".toLowerCase());
 		if (etag == content.eTag) {
 			isCache = true;
-		} else {
-			header["Last-Modified"] = content.lastModifed.toUTCString();
 		}
 		// 看是否有IF_MODIFIED_SINCE,没有主水做验证,有就做验证
 		var ifModifiedSince = req.getHeader(Header.req.IF_MODIFIED_SINCE);
@@ -197,9 +191,9 @@
 			}
 		}
 		if (isCache) {
-			header["Content-Type"] = mimeType;
-			header["ETag"] = etag;
-			res.writeHead(304, header);
+			res.setStatus(304);
+			res.addHeader("Content-Type", mimeType);
+			res.addHeader("ETag", etag);
 			res.end();
 			return true;
 		}
@@ -211,16 +205,13 @@
 			url = separator + server.getWelcome();
 		}
 		var sIdx = url.lastIndexOf(".");
-		if (sIdx < 0)
-			return false;
+		if (sIdx < 0) return false;
 		var suffix = url.substring(sIdx + 1, url.length);
 		var filePath = runDir + url;
 		var content;
-
 		var suf = Config.mimeMapping[suffix];
 		var isGzip = isSupportGzip(req);
-		if (suf == null)
-			return false;
+		if (suf == null) return false;
 		try {
 			// var key = Q.encode(filePath);
 			var key = filePath;
@@ -238,32 +229,23 @@
 					if (Q.isNull(error)) {
 						content.lastModifed = stat.mtime;
 						content.eTag = (stat.mtime.getTime() / 1000) >>> 8;
-						if (_304(req, res, suf.mimeType, content)) {
-							return true;
-						}
+						if (_304(req, res, suf.mimeType, content)) { return true; }
 						fs.readFile(filePath, function(err, data) {
-									if (Q.isNull(err)) {
-										content.value = data;
-										cacheStatic.set(key, content);
-										res.writeHead(200, {
-													'Content-Type' : suf.mimeType,
-													"ETag" : content.eTag,
-													"Expires" : (new Date(Q
-															.time()
-															+ 30
-															* 24
-															* 60
-															* 60
-															* 1000))
-															.toUTCString()
-												});
-										res.write(content.value);
-										res.end();
-									} else {
-										_404(server, url, req, res,
-												suf.mimeType);
-									}
+							if (Q.isNull(err)) {
+								content.value = data;
+								cacheStatic.set(key, content);
+								res.setStatus(200);
+								res.addHeaders( {
+									'Content-Type' : suf.mimeType,
+									'Expires' : (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString(),
+									'ETag' : content.eTag
 								});
+								res.write(content.value);
+								res.end();
+							} else {
+								_404(server, url, req, res, suf.mimeType);
+							}
+						});
 					} else {
 						_404(server, url, req, res, suf.mimeType);
 					}
@@ -278,15 +260,17 @@
 				// content.lastModifed = stat.mtime;
 				// cacheStatic.set(key, content);
 			} else {
-				if (_304(req, res, suf.mimeType, content)) {
-					return true;
+				var etag = req.getHeader("If-None-Match".toLowerCase());
+				//如果浏览器不支持etag模式,就增加使用Last-Modified,实现缓存
+				if (Q.isNull(etag)) {
+					res.addHeader("Last-Modified", content.lastModifed.toUTCString());
 				}
-				res.writeHead(200, {
-							'Content-Type' : suf.mimeType,
-							"ETag" : content.eTag,
-							"Expires" : (new Date(Q.time() + 30 * 24 * 60 * 60
-									* 1000)).toUTCString()
-						});
+				if (_304(req, res, suf.mimeType, content)) { return true; }
+				res.addHeaders( {
+					'Content-Type' : suf.mimeType,
+					"ETag" : content.eTag,
+					"Expires" : (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString()
+				});
 				res.write(content.value);
 				res.end();
 				delete sIdx, suffix;
@@ -297,14 +281,11 @@
 		}
 		return true;
 	}
-
 	/* 执行相关路油器,根据url找出相关路油器并执行 */
 	function execRouter(url, method, req, res) {
-		for (var k = 0; k < routers.length; k++) {
-			if (routers[k].option.method == "ALL"
-					|| routers[k].option.method == method) {
-				if (routers[k].option.ruleType == "regexp"
-						&& routers[k].rule.test(url)) {
+		for ( var k = 0; k < routers.length; k++) {
+			if (routers[k].option.method == "ALL" || routers[k].option.method == method) {
+				if (routers[k].option.ruleType == "regexp" && routers[k].rule.test(url)) {
 					routers[k].router(req, res);
 					return true;
 				} else if (routers[k].rule == url) {
@@ -318,13 +299,10 @@
 	/** 把 /和* 转换成正则对象,其它的不转 */
 	function transform(str) {
 		if (Q.isString(str)) {
-			if (str == "/" || str == "*") {
-				return /.*/i
-			}
+			if (str == "/" || str == "*") { return /.*/i }
 		}
 		return str;
 	}
-
 	Q.Server.createHttp = function(opts) {
 		var server = new Q.Server.Http();
 		return server;
@@ -339,8 +317,9 @@
 	Q.Server.Http = function() {
 		var me = this;
 		HttpServer.apply(me, arguments);
-		me.on("request", function(req, res) {
+		me.on("request", function(req, _res) {
 			try {
+				var res = new Response(_res);
 				res.getRequest = function() {
 					return req
 				};
@@ -349,17 +328,17 @@
 				};
 				req.getSessionId();
 				Object.seal(req);// 密封req对象
+				res.setStatus(200);
 				var url = req.getRequestURL(), method = req.method, execCount = 0;
 				/*
 				 * Log.log("path:" + path); Log.log("method:" + req.method);
-				 * Log.log("httpVersion:" + req.httpVersion);
-				 * Log.log("connection:" + req.connection);
+				 * Log.log("httpVersion:" + req.httpVersion); Log.log("connection:" +
+				 * req.connection);
 				 */
 				// 取得所有的过滤方法
 				var execList = getAllFilterFun(url) || [];
-
 				function nextFilter(req, res) {
-					for (var i = execCount; i < execList.length; i++) {
+					for ( var i = execCount; i < execList.length; i++) {
 						execCount++;
 						execList[i](req, res, nextFilter);
 						break
@@ -367,9 +346,7 @@
 					if (execCount == execList.length) {
 						execCount = 0;
 						// 执行内部最优先组的静态文件路油器,如果返回true,就不执行应用层配置的路油器.
-						if (topDealRouter(me, url, req, res)) {
-							return;
-						}
+						if (topDealRouter(me, url, req, res)) { return; }
 						// 执行路油器
 						if (!execRouter(url, method, req, res)) {
 							// 如果路油器没有匹配的,
@@ -393,15 +370,15 @@
 		filter : function(regexp, fun, opts) {
 			var reg = transform(regexp);
 			if (Q.isString(reg)) {
-				addFilter(regexp, fun, Q.extend({
-									ruleType : "string",
-									rule : reg
-								}, opts))
+				addFilter(regexp, fun, Q.extend( {
+					ruleType : "string",
+					rule : reg
+				}, opts))
 			} else if (Q.isRegExp(reg)) {
-				addFilter(regexp, fun, Q.extend({
-									ruleType : "regexp",
-									rule : reg
-								}, opts))
+				addFilter(regexp, fun, Q.extend( {
+					ruleType : "regexp",
+					rule : reg
+				}, opts))
 			} else {
 				throw new Error("regexp type is error,please input RegExp or String")
 			}
@@ -414,15 +391,15 @@
 		router : function(regexp, fun, opts) {
 			var reg = transform(regexp);
 			if (Q.isString(reg)) {
-				addRouter(regexp, fun, Q.extend({
-									ruleType : "string",
-									rule : regexp
-								}, opts))
+				addRouter(regexp, fun, Q.extend( {
+					ruleType : "string",
+					rule : regexp
+				}, opts))
 			} else if (Q.isRegExp(reg)) {
-				addRouter(regexp, fun, Q.extend({
-									ruleType : "regexp",
-									rule : reg
-								}, opts))
+				addRouter(regexp, fun, Q.extend( {
+					ruleType : "regexp",
+					rule : reg
+				}, opts))
 			} else {
 				throw new Error("regexp type is error,please input RegExp or String")
 			}
@@ -430,13 +407,13 @@
 		},
 		post : function(regexp, fun) {
 			return this.router(regexp, fun, {
-						method : "POST"
-					})
+				method : "POST"
+			})
 		},
 		get : function(regexp, fun) {
 			return this.router(regexp, fun, {
-						method : "GET"
-					})
+				method : "GET"
+			})
 		},
 		// 错误页面
 		// page: 如果是url: 跳转到默认页面,如果是方法,用方法处理错误页面,page(req,res);
@@ -474,6 +451,5 @@
 			this._charset = charset || "utf8";
 		}
 	});
-
 	module.exports = Q.Server.Http;
 })(require("./Qmiks"));

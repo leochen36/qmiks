@@ -21,18 +21,18 @@
 	var Http = require("http");
 	var Response = Http.ServerResponse;
 	server.filter("*", function(req, res, next) {
-		// res.writeHead("Set-Cookie", ["sid=ninja",
-		// "language=javascript"]);
-		// res.on("response")
-		// console.log("enter filter");
-		req.headers.cookie = "";
-		// res.writeHeader("Set-Cookie", "tracker=direct;");
-		// res.writeHead("Set-Cookie", ["sid=tracker"]);
+		log.log("=======================================" + Q.time())
+		var url = req.getRequestURL();
+		log.log("url:" + url);
+		for ( var key in req.headers) {
+			log.log(key + "--:" + req.headers[key])
+		}
+		log.log();
 		next(req, res);
 	});
 	server.router("/abc", function(req, res) {
-		res.addCookie("mgo1", "qqw")
-		res.writeHead(200, {
+		res.addCookie("mgo1", "qqw");
+		res.addHeaders( {
 			"Content-Type" : "text/text"
 		// ,"Set-Cookie":["kuyd=abc", "mena=cc", "mena1=ee"]
 		});
@@ -62,7 +62,7 @@
 	});
 	server.router("/abc/user", function(req, res) {
 		// console.log("enter router /abc/user");
-		res.writeHead(200, {
+		res.addHeaders( {
 			"Content-Type" : "text/text"
 		});
 		res.write("Hello World!");
@@ -71,7 +71,7 @@
 	});
 	server.get("/abc/get", function(req, res) {
 		// console.log("enter router get /abc/get");
-		res.writeHead(200, {
+		res.addHeaders( {
 			"Content-Type" : "text/text"
 		});
 		res.write("Hello World to get!");
@@ -79,13 +79,6 @@
 		res.end();
 	});
 	server.filter(/\S*[.](js)/, function(req, res) {
-		log.log("=======================================" + Q.time())
-		var url = req.url;
-		for ( var key in req.headers) {
-			log.log(key + "--:" + req.headers[key])
-		}
-		log.log(res._header);
-		res.addCookie("mgogo1", "aaaaa");
 	});
 	server.get(/\S*[.](html|htm)/, function(req, res) {
 	});
