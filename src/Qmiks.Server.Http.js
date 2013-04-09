@@ -20,7 +20,6 @@
 	var Log = require("./Qmiks.Log");
 	var Config = require("./Qmiks.Server.Http.Config");
 	var Cookie = require("./Qmiks.Server.Http.Cookie");
-	var Header = require("./Qmiks.Server.Http.Header");
 	var Response = require("./Qmiks.Server.Http.Response");
 	var Request = require("./Qmiks.Server.Http.Request");
 	var Util = require("./Qmiks.Util");
@@ -116,9 +115,7 @@
 			var page = server.page500();
 			var content;
 			res.setStatus(500);
-			res.addHeaders( {
-				'Content-Type' : 'text/html;charset=' + server.getCharset()
-			});
+			res.addHeader(Response.CONTENT_TYPE, 'text/html;charset=' + server.getCharset());
 			if (page) {
 				if (Q.isFun(page)) {
 					page(req, res, error);
@@ -144,6 +141,7 @@
 	}
 	function _404(server, url, req, res, mimeType) {
 		var page = server.page404();
+		mimeType = mimeType || 'text/html';
 		if (page) {
 			if (Q.isFun(page)) {
 				page(req, res);
@@ -154,34 +152,30 @@
 					res.write(file);
 				} catch (e) {
 					res.setStatus(404);
-					res.addHeaders( {
-						'Content-Type' : (mimeType || 'text/html') + ';charset=' + server.getCharset()
-					})
+					res.addHeader(Response.CONTENT_TYPE, mimeType + ";charset=" + server.getCharset());
 					res.write("找不到文件");
 				}
 			}
 		} else {
 			res.setStatus(404);
-			res.addHeaders( {
-				'Content-Type' : 'text/html;charset=' + server.getCharset()
-			});
+			res.addHeader(Response.CONTENT_TYPE, mimeType + ";charset=" + server.getCharset());
 			res.write("找不到文件");
 		}
 		res.end();
 	}
 	function isSupportGzip(req) {
-		return req.getHeader("accept-encoding").indexOf("gzip") > -1;
+		return req.getHeader(Request.ACCEPT_ENCODING).indexOf("gzip") > -1;
 	}
 	// 缓存请求文件,304返回状态码
 	function _304(req, res, mimeType, content) {
 		var isCache = false;
 		// 是否有etag标识,没有就返回false,不做取浏览器缓存处理
-		var etag = req.getHeader("If-None-Match".toLowerCase());
+		var etag = req.getHeader(Request.IF_MODIFIED_SINCE);
 		if (etag == content.eTag) {
 			isCache = true;
 		}
 		// 看是否有IF_MODIFIED_SINCE,没有主水做验证,有就做验证
-		var ifModifiedSince = req.getHeader(Header.req.IF_MODIFIED_SINCE);
+		var ifModifiedSince = req.getHeader(Request.IF_MODIFIED_SINCE);
 		if (ifModifiedSince) {
 			ifModifiedSince = new Date(ifModifiedSince);
 			if (ifModifiedSince.getTime() == content.lastModifed.getTime()) {
@@ -192,8 +186,8 @@
 		}
 		if (isCache) {
 			res.setStatus(304);
-			res.addHeader("Content-Type", mimeType);
-			res.addHeader("ETag", etag);
+			res.addHeader(Response.CONTENT_TYPE, mimeType);
+			res.addHeader(Response.ETAG, etag);
 			res.end();
 			return true;
 		}
@@ -235,11 +229,9 @@
 								content.value = data;
 								cacheStatic.set(key, content);
 								res.setStatus(200);
-								res.addHeaders( {
-									'Content-Type' : suf.mimeType,
-									'Expires' : (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString(),
-									'ETag' : content.eTag
-								});
+								res.addHeader(Response.CONTENT_TYPE, suf.mimeType);
+								res.addHeader(Response.EXPIRES, (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString());
+								res.addHeader(Response.ETAG, content.eTag);
 								res.write(content.value);
 								res.end();
 							} else {
@@ -266,11 +258,10 @@
 					res.addHeader("Last-Modified", content.lastModifed.toUTCString());
 				}
 				if (_304(req, res, suf.mimeType, content)) { return true; }
-				res.addHeaders( {
-					'Content-Type' : suf.mimeType,
-					"ETag" : content.eTag,
-					"Expires" : (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString()
-				});
+				res.setStatus(200);
+				res.addHeader(Response.CONTENT_TYPE, suf.mimeType);
+				res.addHeader(Response.EXPIRES, (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString());
+				res.addHeader(Response.ETAG, content.eTag);
 				res.write(content.value);
 				res.end();
 				delete sIdx, suffix;

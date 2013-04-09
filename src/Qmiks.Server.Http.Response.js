@@ -17,14 +17,22 @@
 	// 运行参数
 	var log = new Log("Qmiks.Server.Http.Response");
 	var timeout = Config.cookie.timeout;// cookie保存时间
-	var RES_HEADER_COOKIE = "Set-Cookie"; // cookie
-	var RES_HEADER_CONTENT_TYPE = "Content-Type"; // contentType
+	// 响应类
 	function Response(nodeJSResponse) {
 		var me = this;
 		me._response = nodeJSResponse;
 		me._isWriteHead = false;
 		me.__headers = {};
 	}
+	Q.extend(Response, {
+		// cookie
+		SET_COOKIE : "Set-Cookie",
+		CONTENT_TYPE : "Content-Type",
+		// 编码
+		CHARSET : "Accept-Charset",
+		EXPIRES : "Expires",
+		ETAG : "ETag"
+	});
 	Q.extend(Response.prototype, {
 		// 增加响应头
 		addHeader : function(name, value) {
@@ -55,13 +63,13 @@
 		addCookie : function(name, value, expires, domain, path, secure) {
 			var me = this;
 			var cookie = new Cookie(name, value, expires, domain, path, secure);
-			var cookies = this.getHeader(RES_HEADER_COOKIE) || [];
+			var cookies = this.getHeader(Response.SET_COOKIE) || [];
 			cookies.push(cookie.toString());
-			me._addHeader(RES_HEADER_COOKIE, cookies);
+			me._addHeader(Response.SET_COOKIE, cookies);
 			// me._response.writeHead(me.statusCode, {
 			// "Set-Cookie" : cookies
 			// });
-			me._response.setHeader("Set-Cookie", cookies);
+			me._response.setHeader(Response.SET_COOKIE, cookies);
 			return this;
 		},
 		rmCookie : function(name) {
@@ -69,7 +77,7 @@
 			return this;
 		},
 		getContentType : function() {
-			return this.getHeader("Content-Type");
+			return this.getHeader(Response.CONTENT_TYPE);
 		},
 		getStatus : function() {
 			return this._response.statusCode;

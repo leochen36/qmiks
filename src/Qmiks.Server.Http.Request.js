@@ -30,6 +30,15 @@
 		me._request = nodeJSRequest;
 		me._url = null;
 	}
+	Q.extend(Request, {
+		// 最后一次修改时间
+		IF_MODIFIED_SINCE : "If-Modified-Since".toLowerCase(),
+		// 类型
+		CONTENT_TYPE : "Content-Type".toLocaleLowerCase(),
+		// 编码
+		CHARSET : "Accept-Charset".toLowerCase(),
+		ACCEPT_ENCODING : "Accept-Encoding".toLowerCase()
+	});
 	Q.extend(Request.prototype, {
 		// sessionIdName
 		getSessionId : function() {
@@ -92,6 +101,12 @@
 		},
 		getMethod : function() {
 			return this._request.method
+		},
+		getContentType : function() {
+			return this.getHeaders()[Request.CONTENT_TYPE];
+		},
+		getCharacter : function() {
+			return this.getHeaders()[Request.CHARSET];
 		}
 	});
 	Http.Request = Request;
