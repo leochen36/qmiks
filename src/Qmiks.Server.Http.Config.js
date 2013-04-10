@@ -24,7 +24,7 @@
 			"css" : "",
 			"html" : "",
 			"htm" : "",
-			"" : ""
+			"json" : ""
 		},
 		// 静态文件类型
 		mimeMapping : {

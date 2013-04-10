@@ -114,7 +114,33 @@
 			return this;
 		},
 		pipe : function(socket) {
-			this._response.pipe(socket);
+			try {
+				this._writeHead();
+				this._response.pipe(socket);
+			} catch (e) {
+				log.error("response pipe error;", e);
+			}
+		},
+		on : function() {
+			this._response.on.apply(this._response, arguments);
+		},
+		emit : function() {
+			this._response.emit.apply(this._response, arguments);
+		},
+		removeListener : function() {
+			this._response.removeListener.apply(this._response, arguments);
+		},
+		addListener : function() {
+			this._response.addListener.apply(this._response, arguments);
+		},
+		once : function() {
+			this._response.once.apply(this._response, arguments);
+		},
+		removeAllListeners : function() {
+			this._response.removeAllListeners.apply(this._response, arguments);
+		},
+		listeners : function() {
+			return this._response.listeners.apply(this._response, arguments);
 		}
 	});
 	Http.Response = Response;

@@ -25,7 +25,10 @@
 		var url = req.getRequestURL();
 		log.log("url:" + url);
 		for ( var key in req.getHeaders()) {
-			log.log(key + "--:" + req.getHeaders()[key])
+			// log.log(key + "--:" + req.getHeaders()[key])
+		}
+		for ( var key in req._request.socket) {
+			//log.log(key + "--:"  )
 		}
 		log.log();
 		next(req, res);
@@ -36,37 +39,22 @@
 			"Content-Type" : "text/text"
 		// ,"Set-Cookie":["kuyd=abc", "mena=cc", "mena1=ee"]
 		});
-		// log.log(req.getHeader("Cache-Control"))
-		// log.log(req.headers["cache-control"])
-		// for (var key in req.headers) {
-		// log.log(key + ":" + req.headers[key])
-		// }
-		// console.log("enter router");
-		// log.log("req cookies:"+req.getCookies())
-		// res.writeHeader("\r\nSet-Cookie:", "trackerqqq=direct;");
-		// res.writeHeader("\r\nSet-Cookie:", "accc=direct;");
-		// res.writeHead("\r\nSet-Cookie", ["kuyd=abc", "mena=cc", "mena1=ee"]);
-		// res.writeHead("\r\nSet-Cookie:", "acccaa=direct;");
-		// res.addCookie("kuy", "11",300)
-		// res.addCookie("kuy1", "11",300)
-		// res.addCookie("mgo", "likeyou")
-		//
 		res.write("http request :" + Q.time());
-		// res.rmCookie("mgo1")
-		// res.writeHead(res.statusCode, {
-		// "Set-Cookie":["kuyd33=abc", "mena33=cc", "mena133=ee"]
-		// });
 		res.end();
-		// log.log("---:"+res._header)
-		// console.log(res._header);
 	});
-	server.router("/abc/user", function(req, res) {
+	server.router("/login", function(req, res) {
 		// console.log("enter router /abc/user");
+		console.log(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,")
+		console.log(req.getParameterNames());
 		res.addHeaders( {
 			"Content-Type" : "text/text"
 		});
+		console.log("getRemoteAddr:"+req.getRemoteAddr())
+		console.log("getRemotePort:"+req.getRemotePort())
+		console.log("getContentLength:"+req.getContentLength())
+		
 		res.write("Hello World!");
-		res.write("/abc/user :" + Q.time());
+		res.write("/login :" + Q.time());
 		res.end();
 	});
 	server.get("/abc/get", function(req, res) {

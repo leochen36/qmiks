@@ -200,11 +200,12 @@
 		}
 		var sIdx = url.lastIndexOf(".");
 		if (sIdx < 0) return false;
-		var suffix = url.substring(sIdx + 1, url.length);
+		var suffix = url.substring(sIdx + 1, url.length);// 访问的文件类型,值为(js,html,css等)
 		var filePath = runDir + url;
 		var content;
 		var suf = Config.mimeMapping[suffix];
 		var isGzip = isSupportGzip(req);
+		var isCache = !Q.isNull(Config.cache[suffix]);
 		if (suf == null) return false;
 		try {
 			// var key = Q.encode(filePath);
@@ -224,34 +225,37 @@
 						content.lastModifed = stat.mtime;
 						content.eTag = (stat.mtime.getTime() / 1000) >>> 8;
 						if (_304(req, res, suf.mimeType, content)) { return true; }
-						fs.readFile(filePath, function(err, data) {
-							if (Q.isNull(err)) {
-								content.value = data;
-								cacheStatic.set(key, content);
-								res.setStatus(200);
-								res.addHeader(Response.CONTENT_TYPE, suf.mimeType);
-								res.addHeader(Response.EXPIRES, (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString());
-								res.addHeader(Response.ETAG, content.eTag);
-								res.write(content.value);
-								res.end();
-							} else {
-								_404(server, url, req, res, suf.mimeType);
-							}
-						});
+						// 需要把内容缓存到内存里
+						if (isCache) {
+							fs.readFile(filePath, function(err, data) {
+								if (Q.isNull(err)) {
+									content.value = data;
+									cacheStatic.set(key, content);
+									res.setStatus(200);
+									res.addHeader(Response.CONTENT_TYPE, suf.mimeType);
+									res.addHeader(Response.EXPIRES, (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString());
+									res.addHeader(Response.ETAG, content.eTag);
+									res.write(content.value);
+									res.end();
+								} else {
+									_404(server, url, req, res, suf.mimeType);
+								}
+							});
+						} else {
+							cacheStatic.set(key, content);
+							res.setStatus(200);
+							res.addHeader(Response.CONTENT_TYPE, suf.mimeType);
+							res.addHeader(Response.EXPIRES, (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString());
+							res.addHeader(Response.ETAG, content.eTag);
+							var raw = fs.createReadStream(filePath);
+							raw.pipe(res);
+						}
 					} else {
 						_404(server, url, req, res, suf.mimeType);
 					}
 				});
-				// 下面是同步读取
-				// content = fs.readFileSync(filePath, "utf8");
-				// content = {
-				// value : content
-				// };
-				// cacheStatic.set(key, content);
-				// stat = fs.statSync(filePath);
-				// content.lastModifed = stat.mtime;
-				// cacheStatic.set(key, content);
 			} else {
+				// 从内存里读取
 				var etag = req.getHeader("If-None-Match".toLowerCase());
 				// 如果浏览器不支持etag模式,就增加使用Last-Modified,实现缓存
 				if (Q.isNull(etag)) {
@@ -262,8 +266,15 @@
 				res.addHeader(Response.CONTENT_TYPE, suf.mimeType);
 				res.addHeader(Response.EXPIRES, (new Date(Q.time() + 30 * 24 * 60 * 60 * 1000)).toUTCString());
 				res.addHeader(Response.ETAG, content.eTag);
-				res.write(content.value);
-				res.end();
+				// 有缓存,从缓存里读取
+				if (isCache) {
+					res.write(content.value);
+					res.end();
+				} else {
+					// 从硬盘读取
+					var raw = fs.createReadStream(filePath);
+					raw.pipe(res);
+				}
 				delete sIdx, suffix;
 			}
 		} catch (e) {
@@ -324,11 +335,7 @@
 				var url = req.getRequestURL();
 				var method = req.getMethod();
 				var execCount = 0;
-				/*
-				 * Log.log("path:" + path); Log.log("method:" + req.method);
-				 * Log.log("httpVersion:" + req.httpVersion); Log.log("connection:" +
-				 * req.connection);
-				 */
+				
 				// 取得所有的过滤方法
 				var execList = getAllFilterFun(url) || [];
 				function nextFilter(req, res) {
@@ -348,7 +355,21 @@
 						}
 					}
 				}
-				nextFilter(req, res);
+				console.log("000>>" + method + "," + (Request.METHOD_POST == method))
+				if (Request.METHOD_POST == method) {
+					// post方法请求
+					req.once("data", function(data) {
+						try {
+							nextFilter(req, res);
+						} catch (e) {
+							log.log("[ERROR][" + e.stack + "]");
+							_500(me, url, req, res, e);
+						}
+					})
+				} else {
+					// 非port方法请求
+					nextFilter(req, res);
+				}
 			} catch (e) {
 				log.log("[ERROR][" + e.stack + "]");
 				_500(me, url, req, res, e);
