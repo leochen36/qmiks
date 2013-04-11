@@ -6,7 +6,7 @@
 // server
 (function(Q) {
 	// 系统组件
-	var EventEmitter = require('events').EventEmitter;
+	// var EventEmitter = require('events').EventEmitter;
 	function Log(cata) {
 		var me = this;
 		me._cata = cata;
