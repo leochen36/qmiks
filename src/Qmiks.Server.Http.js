@@ -26,11 +26,8 @@
 	var Cache = Util.Cache;
 	// /////////////////////////////////////////////
 	// 运行变量
-	var File = {
-		separator : os.platform().indexOf("win") > -1 ? "\\" : "/"
-	}
 	var log = new Log("Qmiks.Server.Http");
-	var separator = File.separator; // 目录分隔符
+	var separator = Q.getSeparator(); // 目录分隔符
 	var cacheStatic = new Cache();// 静态文件缓存
 	var cacheGzipStatic = new Cache();// 静态文件缓存
 	var filters = []; // 过滤器列表
@@ -335,7 +332,6 @@
 				var url = req.getRequestURL();
 				var method = req.getMethod();
 				var execCount = 0;
-				
 				// 取得所有的过滤方法
 				var execList = getAllFilterFun(url) || [];
 				function nextFilter(req, res) {
