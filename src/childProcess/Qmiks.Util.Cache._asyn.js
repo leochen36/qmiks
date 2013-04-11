@@ -8,9 +8,44 @@
 	// 加载系统组件
 	var child_process = require('child_process');
 	// 加载其它模块
-	var Log = require("./Qmiks.Log");
-	var Util = require("./Qmiks.Util");
-	var Map = require("./Qmiks.Util.Map");
+	function Map() {
+		var me = this;
+		me._map = {};
+		me.length = 0;
+	}
+	Q.extend(Map.prototype, {
+		get : function(key) {
+			return this._map[key];
+		},
+		put : function(key, value) {
+			if (Q.isNull(key)) {
+			}
+			if (!this.hasOwnProperty(key)) {
+				this.length++;
+			}
+			this._map[key] = value;
+			return this;
+		},
+		set : function(key, value) {
+			this.put(key, value);
+		},
+		rm : function(key) {
+			this.length--;
+			delete this._map[key];
+		},
+		size : function() {
+			return this.length;
+		},
+		containsKey : function(key) {
+			return this.get(key) != null;
+		},
+		// 迭代
+		iterator : function(callback) {
+			for ( var key in this._map) {
+				callback.call(callback, key, this.get(key));
+			}
+		}
+	});
 	function Cache() {
 		var me = this;
 		me._keyValue = new Map();
@@ -73,13 +108,11 @@
 			this._keyValue.iterator(callback);
 		}
 	});
-	var cp = child_process.fork(Q.getQmiksSrc() + Q.getSeparator() + 'childProcess/Qmiks.Util.Cache._asyn.js');
-	cp.on('message', function(m) {
-		console.log('PARENT got message:', m);
+	var caches = new Map();
+	process.on('message', function(m) {
+		console.log('CHILD got message:', m);
 	});
-	cp.send( {
-		hello : 'world'
+	process.send( {
+		foo : 'bar'
 	});
-	Q.inherit(Cache, Map);
-	module.exports = Cache;
-})(require("./Qmiks"));
+})(require("../Qmiks"));

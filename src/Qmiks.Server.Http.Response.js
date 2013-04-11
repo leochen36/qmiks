@@ -143,6 +143,5 @@
 			return this._response.listeners.apply(this._response, arguments);
 		}
 	});
-	Http.Response = Response;
 	module.exports = Response;
 })(require("./Qmiks"));

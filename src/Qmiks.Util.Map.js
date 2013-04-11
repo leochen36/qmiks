@@ -46,6 +46,5 @@
 			}
 		}
 	});
-	Q.Util.Map = Map;
 	module.exports = Map;
 })(require("./Qmiks"));

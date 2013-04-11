@@ -7,7 +7,6 @@
 (function(Q) {
 	// 加载框架组件
 	var Log = require('./Qmiks.Log');
-
 	// 加载系统组件
 	var EventEmitter = require('events').EventEmitter;
 	// 异常类
@@ -16,17 +15,16 @@
 		Error.apply(me, arguments);
 	}
 	Q.extend(Exception.prototype, {
-				getStack : function() {
-					return this.stack;
-				},
-				getName : function() {
-					return this.name;
-				},
-				getMessage : function() {
-					return this.message;
-				}
-			});
+		getStack : function() {
+			return this.stack;
+		},
+		getName : function() {
+			return this.name;
+		},
+		getMessage : function() {
+			return this.message;
+		}
+	});
 	Q.inherit(Exception, Error);
-	Q.Exception = Exception;
 	module.exports = Exception;
 })(require("./Qmiks"));

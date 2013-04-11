@@ -22,9 +22,6 @@
 	var Cache = require("./Qmiks.Util.Cache");
 	var Cookie = require("./Qmiks.Server.Http.Cookie");
 	var log = new Log("Qmiks.Server.Http");
-	var File = {
-		separator : os.platform().indexOf("win") > -1 ? "\\" : "/"
-	}
 	var sessionIdName = "QSESSIONID";
 	var session = new Cache();
 	// http请求类(Request)增加方法

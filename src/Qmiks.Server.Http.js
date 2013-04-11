@@ -15,15 +15,14 @@
 	var zlib = require("zlib");
 	var Buffer = require("buffer").Buffer;
 	// 框架组件
-	require("./Qmiks.Server.Http._init");
+	// require("./Qmiks.Server.Http._init");
 	var Server = require("./Qmiks.Server");
 	var Log = require("./Qmiks.Log");
 	var Config = require("./Qmiks.Server.Http.Config");
 	var Cookie = require("./Qmiks.Server.Http.Cookie");
 	var Response = require("./Qmiks.Server.Http.Response");
 	var Request = require("./Qmiks.Server.Http.Request");
-	var Util = require("./Qmiks.Util");
-	var Cache = Util.Cache;
+	var Cache = require("./Qmiks.Util.Cache");
 	// /////////////////////////////////////////////
 	// 运行变量
 	var log = new Log("Qmiks.Server.Http");

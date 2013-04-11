@@ -6,8 +6,7 @@
 // server
 (function(Q) {
 	// 加载模块
-	var Http = require("./Qmiks.Server.Http");
-	Http.Config = {
+	var Config = {
 		// 会话session配置,session config
 		session : {
 			// session超时时间,单位分钟;
@@ -3060,5 +3059,5 @@
 			}
 		}
 	}
-	module.exports = Http.Config;
+	module.exports = Config;
 })(require("./Qmiks"));
