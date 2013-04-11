@@ -4,9 +4,18 @@
  * @version:0.91.008
  */
 var Qmiks = new (function() {
+	// 系统组件
+	var os = require("os");
 	/* 声明基础性字段 */
-	var gme = this, encode = encodeURIComponent, decode = decodeURIComponent, array = Array.prototype, slice = array.slice, string = String.prototype, hasOwnProperty = Object.prototype.hasOwnProperty, Base = {};
-
+	var gme = this;
+	var encode = encodeURIComponent;
+	var decode = decodeURIComponent;
+	var array = Array.prototype;
+	var slice = array.slice;
+	var string = String.prototype;
+	var hasOwnProperty = Object.prototype.hasOwnProperty;
+	var Base = {};
+	var separator = os.platform().indexOf("win") > -1 ? "\\" : "/";
 	string.equalsIgnoreCase = function(v) {
 		if (v == null)
 			return false;
@@ -366,7 +375,13 @@ var Qmiks = new (function() {
 						return pid
 					},
 					toLower : toLower,
-					toUpper : toUpper
+					toUpper : toUpper,
+					getSeparator : function() {// 取得系统的路径分隔符
+						return separator;
+					},
+					QmiksSrc : function() {
+						return __dirname;
+					}
 				});
 
 		function isQmiks(v) {
