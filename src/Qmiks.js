@@ -379,7 +379,7 @@ var Qmiks = new (function() {
 					getSeparator : function() {// 取得系统的路径分隔符
 						return separator;
 					},
-					QmiksSrc : function() {
+					QmiksSrc : function() {//取得当前qmiks框架源码所在目录
 						return __dirname;
 					}
 				});
