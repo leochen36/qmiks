@@ -29,6 +29,12 @@
 		var me = this;
 		me._request = nodeJSRequest;
 		me._url = null;
+		me._params = null;
+		me.__paramStrGet = null;// get请求参数字符串
+		me.__paramStrPost = null;// post请求参数字符串
+		me._request.on("data", function(data) {
+			me.__paramStrPost = data;
+		})
 	}
 	Q.extend(Request, {
 		// 最后一次修改时间
@@ -37,7 +43,11 @@
 		CONTENT_TYPE : "Content-Type".toLocaleLowerCase(),
 		// 编码
 		CHARSET : "Accept-Charset".toLowerCase(),
-		ACCEPT_ENCODING : "Accept-Encoding".toLowerCase()
+		ACCEPT_ENCODING : "Accept-Encoding".toLowerCase(),
+		CONTENT_LENGTH : "Content-Length".toLowerCase(),
+		// ///
+		METHOD_POST : "POST",
+		METHOD_GET : "GET"
 	});
 	Q.extend(Request.prototype, {
 		// sessionIdName
@@ -71,22 +81,51 @@
 		},
 		// 取参数
 		getParameter : function(name) {
-			this._params = this._params || {};
-			var p = this._params[name];
-			if (p) { return Q.isArray(p) ? p[0] : p; }
-			var surl = Q.decode(this._request.url).trim();
+			var me = this;
+			if (Q.isNull(me._params)) {
+				me._initParameter();
+			}
+			var p = me._params[name];
+			return Q.isNull(p) ? null : Q.isArray(p) ? p[0] : p;
+		},
+		// 取得所有的参数名
+		getParameterNames : function() {
+			var me = this;
+			if (Q.isNull(me._params)) {
+				me._initParameter();
+			}
+			if (me._paramNames) { return me._paramNames; }
+			var names = [];
+			if (!Q.isNull(me._params)) {
+				for ( var name in me._params) {
+					names.push(name);
+				}
+			}
+			me._paramNames = names;
+			return names;
+		},
+		_initParameter : function() {
+			if (!Q.isNull(me._params)) { return; }
+			var me = this;
+			// 请求参数的字符串,get和post
+			var paramStr = me.__paramStrPost || "";
+			var surl = Q.decode(me._request.url).trim();
 			var idx = surl.indexOf("?");
-			if (idx < 0) { return null; }
-			var _params = surl.substring(idx + 1, surl.length);
-			_params = _params.replace(/&\s+/g, "&").replace(/\s+=/g, "=");
-			if (_params == "") return null;
-			this._params = querystring.parse(_params);
-			p = this._params[name];
-			if (p) { return Q.isArray(p) ? p[0] : p; }
-			return null;
+			if (idx >= 0) {
+				// url里的参数
+				var paramStrGet = surl.substring(idx + 1, surl.length);
+				paramStrGet = paramStrGet.replace(/&\s+/g, "&").replace(/\s+=/g, "=");
+				// 设置到get请求参数的字符串
+				me.__paramStrGet = paramStrGet;
+				paramStr += "&" + paramStrGet || "";
+			}
+			me._params = querystring.parse(paramStr);
 		},
 		getHeader : function(name) {
 			return this._request.headers[name];
+		},
+		getIntHeader : function(name) {
+			return parseInt(this.getHeader(name));
 		},
 		getHeaders : function() {
 			return this._request.headers;
@@ -107,6 +146,36 @@
 		},
 		getCharacter : function() {
 			return this.getHeaders()[Request.CHARSET];
+		},
+		getRemoteAddr : function() {
+			return this._request.socket.remoteAddress;
+		},
+		getRemotePort : function() {
+			return this._request.socket.remotePort
+		},
+		getContentLength : function() {
+			return this.getIntHeader(Request.CONTENT_LENGTH);
+		},
+		on : function() {
+			this._request.on.apply(this._request, arguments);
+		},
+		emit : function() {
+			this._request.emit.apply(this._request, arguments);
+		},
+		removeListener : function() {
+			this._request.removeListener.apply(this._request, arguments);
+		},
+		addListener : function() {
+			this._request.addListener.apply(this._request, arguments);
+		},
+		once : function() {
+			this._request.once.apply(this._request, arguments);
+		},
+		removeAllListeners : function() {
+			this._request.removeAllListeners.apply(this._request, arguments);
+		},
+		listeners : function() {
+			return this._request.listeners.apply(this._request, arguments);
 		}
 	});
 	Http.Request = Request;

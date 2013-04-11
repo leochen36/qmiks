@@ -47,7 +47,6 @@
 		},
 		// 设置缓存key-value,timeout的单位秒
 		set : function(key, value, timeout) {
-			console.log("set...............>"+timeout)
 			this._keyValue.put(key, {
 				value : value,
 				timeout : getTime(timeout)
