@@ -33,6 +33,18 @@ var Qmiks = new (function() {
 		}
 		return true;
 	}
+	string._hash = 0;
+	string.hashCode = function() {
+		var i = this._hash;
+		var j = this.length;
+		if (i == 0 && j > 0) {
+			var k = 0;
+			for ( var l = 0; l < j; l++)
+				i = 31 * i + this.charCodeAt(k++);
+			this._hash = i;
+		}
+		return i;
+	}
 	/* ----------------------- 声明基础性方法 start */
 	String.prototype.endsWith = function(str) {
 		if (this.length < str.length) return false;
