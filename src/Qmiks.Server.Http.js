@@ -350,7 +350,6 @@
 						}
 					}
 				}
-				console.log("000>>" + method + "," + (Request.METHOD_POST == method))
 				if (Request.METHOD_POST == method) {
 					// post方法请求
 					req.once("data", function(data) {

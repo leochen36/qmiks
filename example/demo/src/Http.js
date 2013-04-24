@@ -21,16 +21,11 @@
 	var Http = require("http");
 	var Response = Http.ServerResponse;
 	server.filter("*", function(req, res, next) {
-		log.log("=======================================" + Q.time())
+		//log.log("=======================================" + Q.time())
 		var url = req.getRequestURL();
-		log.log("url:" + url);
-		for ( var key in req.getHeaders()) {
-			// log.log(key + "--:" + req.getHeaders()[key])
-		}
-		for ( var key in req._request.socket) {
-			//log.log(key + "--:"  )
-		}
-		log.log();
+		//log.log("url:" + url);
+		 
+		//log.log();
 		next(req, res);
 	});
 	server.router("/abc", function(req, res) {
