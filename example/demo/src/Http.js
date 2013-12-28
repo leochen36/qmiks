@@ -6,11 +6,13 @@
 (function() {
 	var fs = require("fs");
 	var M = require("http").IncomingMessage;
-	var Q = require("../lib/QmiksLib");
+	var vars = require("../lib/vars");
+	var Log = vars.require("org/qmiks/Log");
+	var Server = vars.require("org/qmiks/server/Server.js");
 	console.log("load Qmik is OK");
 	console.log("create http server");
-	var server = Q.Server.createHttp();
-	var log = new Q.Log("http.start");
+	var server = Server.createHttp();
+	var log = new Log("http.start");
 	log.log("create http server success");
 	var m = new Error("afdfd");
 	for ( var key in m) {
@@ -21,9 +23,9 @@
 	var Http = require("http");
 	var Response = Http.ServerResponse;
 	server.filter("*", function(req, res, next) {
-		//log.log("=======================================" + Q.time())
+		//log.log("=======================================" + Q.now())
 		var url = req.getRequestURL();
-		//log.log("url:" + url);
+		log.log("url:" + url);
 		 
 		//log.log();
 		next(req, res);
@@ -34,7 +36,20 @@
 			"Content-Type" : "text/text"
 		// ,"Set-Cookie":["kuyd=abc", "mena=cc", "mena1=ee"]
 		});
-		res.write("http request :" + Q.time());
+		res.write("http request :" + Q.now());
+		res.end();
+	});
+	server.router("/jsonp", function(req, res) {
+		res.addCookie("mgo1", "qqw");
+		res.addHeaders( {
+			"Content-Type" : "text/javascript"
+		// ,"Set-Cookie":["kuyd=abc", "mena=cc", "mena1=ee"]
+		});
+		res.write("http request :" + Q.now());
+		//var callback=req.getParameter("callback");
+		//var params=require('url').parse(request.url,true );
+		//console.log(params)
+		res.write("callback({name:\"gogo\"})")
 		res.end();
 	});
 	server.router("/login", function(req, res) {
@@ -49,7 +64,7 @@
 		console.log("getContentLength:"+req.getContentLength())
 		
 		res.write("Hello World!");
-		res.write("/login :" + Q.time());
+		res.write("/login :" + Q.now());
 		res.end();
 	});
 	server.get("/abc/get", function(req, res) {
@@ -58,7 +73,7 @@
 			"Content-Type" : "text/text"
 		});
 		res.write("Hello World to get!");
-		res.write("/abc/get :" + Q.time());
+		res.write("/abc/get :" + Q.now());
 		res.end();
 	});
 	server.filter(/\S*[.](js)/, function(req, res) {
@@ -67,7 +82,7 @@
 	});
 	server.get("/ws", function(req, res) {
 	});
-	var port = 8100;
+	var port = 80;
 	server.listen(port);
 	server.on("connection", function() {
 		// console.log("connection--------------------------------------------------");

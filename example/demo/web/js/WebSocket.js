@@ -45,8 +45,9 @@ function connectToServer() {
 
     // 收到服务器发送的文本消息, event.data表示文本内容
     ws.onmessage = function(msg) {
-        document.getElementById("show").innerHTML = msg.data;
-        console.log(msg.data)
+        var mm="receive msg:"+msg.data;
+        document.getElementById("show").innerHTML =mm;
+        console.log(mm)
     };
     // 关闭WebSocket的回调
     ws.onclose = function(eve) {
@@ -91,7 +92,7 @@ connectToServer();
 function send() {
     setInterval(function() {
 
-        sendMessage("dafsd---");
+        sendMessage("dafsd---"+$.now);
     }, 3000);
 }
 send();

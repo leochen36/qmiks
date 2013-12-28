@@ -9,15 +9,19 @@
     var fs = require("fs");
     var os = require("os");
 
-    var Q = require("../lib/QmiksLib");
-    var app = Q.Server.createWebSocket();
+
+    var vars = require("../lib/vars");
+    var Q = vars.require("org/qmiks/Qmiks");
+    var Server = vars.require("org/qmiks/server/Server");
+    var app = Server.createWebSocket();
     var port=8124;
     app.listen(port);
-    console.log("websocket port:"+port)
+    console.log("websocket port:"+port);
+    console.log("filename:"+__filename)
     app.onAccept = function(inbound) {
         inbound.onTextData = function(data) {
- 
-            this.write("dafsd---"+Q.time());
+            
+            this.write("dafsd---"+Q.now());
  
         };
     }
@@ -38,6 +42,4 @@
         }
     }
 
-    console.log(Q.time())
-    console.log(os.uptime())
 })();
