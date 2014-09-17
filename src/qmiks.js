@@ -434,6 +434,7 @@
 			getSeparator: function() { // 取得系统的路径分隔符
 				return separator;
 			},
+			//执行fun方法,会捕获异常信息
 			execCatch: function(fun, args, error) {
 				try {
 					fun.apply(fun, args || []);
