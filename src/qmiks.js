@@ -13,51 +13,87 @@
 	var decode = decodeURIComponent;
 	var slice = [].slice; //
 	var config = {
-		context: "/" //工程上下文目录
+		src: "/src" //工程源代码目录
 	};
 	var separator = os.platform().indexOf("win") > -1 ? "\\" : "/"; //系统路径分隔符
-	var string = String.prototype;
-	string.equalsIgnoreCase = function(v) {
-		if (v == null) return false;
-		if (this.length != v.length) return false;
-		var a1, a2, diff;
-		for (var i = 0; i < this.length; i++) {
-			a1 = this.charCodeAt(i);
-			a2 = v.charCodeAt(i);
-			if (a1 == a2) continue;
-			diff = Math.abs(a1 - a2);
-			if (diff != 32) return false;
-			if (a1 > 96 && a1 < 123 && a2 < 91) return true;
-			if (a1 > 64 && a1 < 91 && a2 > 96) return true;
-			return false;
-		}
-		return true;
-	}
-	string._hash = 0;
-	string.hashCode = function() {
-		var i = this._hash;
-		var j = this.length;
-		if (i == 0 && j > 0) {
-			var k = 0;
-			for (var l = 0; l < j; l++)
-				i = 31 * i + this.charCodeAt(k++);
-			this._hash = i;
-		}
-		return i;
-	}
 	/* ----------------------- 声明基础性方法 start */
-	String.prototype.endsWith = function(str) {
-		if (this.length < str.length) return false;
-		return this.substring(this.length - str.length, this.length) === str;
-	}
-	String.prototype.startsWith = function(str) {
-		if (this.length < str.length) return false;
-		return this.substring(0, str.length) === str;
+	Q.extend(String.prototype, {
+		equalsIgnoreCase: function(v) {
+			if (v == null) return false;
+			if (this.length != v.length) return false;
+			var a1, a2, diff;
+			for (var i = 0; i < this.length; i++) {
+				a1 = this.charCodeAt(i);
+				a2 = v.charCodeAt(i);
+				if (a1 == a2) continue;
+				diff = Math.abs(a1 - a2);
+				if (diff != 32) return false;
+				if (a1 > 96 && a1 < 123 && a2 < 91) return true;
+				if (a1 > 64 && a1 < 91 && a2 > 96) return true;
+				return false;
+			}
+			return true;
+		},
+		hashCode: function() {
+			var i = this._hash;
+			var j = this.length;
+			if (i == 0 && j > 0) {
+				var k = 0;
+				for (var l = 0; l < j; l++)
+					i = 31 * i + this.charCodeAt(k++);
+				this._hash = i;
+			}
+			return i;
+		},
+		endsWith: function(str) {
+			if (this.length < str.length) return false;
+			return this.substring(this.length - str.length, this.length) === str;
+		},
+		startsWith: function(str) {
+			if (this.length < str.length) return false;
+			return this.substring(0, str.length) === str;
+		},
+		trim: function() {
+			return this.replace(/^(\s|\u00A0)+|(\s|\u00A0)+$/g, "")
+		},
+		toLower: function() {
+			return this.toLowerCase()
+		},
+		toUpper: function() {
+			return this.toUpperCase()
+		}
+	});
+
+	// 对Date的扩展，将 Date 转化为指定格式的String   
+	// 月(M)、日(d)、小时(h)、分(m)、秒(s)、季度(q) 可以用 1-2 个占位符，   
+	// 年(y)可以用 1-4 个占位符，毫秒(S)只能用 1 个占位符(是 1-3 位的数字)   
+	// 例子：   
+	// (new Date()).Format("yyyy-MM-dd hh:mm:ss.S") ==> 2006-07-02 08:09:04.423   
+	// (new Date()).Format("yyyy-M-d h:m:s.S")      ==> 2006-7-2 8:9:4.18   
+	Date.prototype.Format = function(fmt) { //author: meizz   
+		var o = {
+			"M+": this.getMonth() + 1, //月份   
+			"d+": this.getDate(), //日   
+			"h+": this.getHours(), //小时   
+			"m+": this.getMinutes(), //分   
+			"s+": this.getSeconds(), //秒   
+			"q+": Math.floor((this.getMonth() + 3) / 3), //季度   
+			"S": this.getMilliseconds() //毫秒   
+		};
+		if (/(y+)/.test(fmt))
+			fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+		for (var k in o)
+			if (new RegExp("(" + k + ")").test(fmt))
+				fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+		return fmt;
 	}
 
-
+	var g_path = process.argv[1];
 	// define qmik object
-	function Q(selector, context) {}
+	function Q(lib) {
+		var file = g_path + "/" + config.src + "/" + lib;
+		return require(file);
+	}
 	Q.extend = function() {
 		var args = arguments,
 			ret = args[0] || {},
@@ -77,17 +113,6 @@
 		});
 		return ret
 	}
-	Q.extend(String.prototype, {
-		trim: function() {
-			return this.replace(/^(\s|\u00A0)+|(\s|\u00A0)+$/g, "")
-		},
-		toLower: function() {
-			return this.toLowerCase()
-		},
-		toUpper: function() {
-			return this.toUpperCase()
-		}
-	});
 
 	function grep(array, callback) {
 		var ret = [];
@@ -426,6 +451,6 @@
 	///////////////////////////////////////////////////////
 	Q.version = "1.0.0";
 	g.Qmiks = Q;
-	g.Q = Q;
+	g.Q = g.$ = Q;
 	module.exports = Q;
 })();
